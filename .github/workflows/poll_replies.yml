@@ -1,9 +1,9 @@
 name: 📬 Poll Email Replies
 
 on:
-  schedule:
-    # Esegui ogni 5 minuti
-    - cron: '*/5 * * * *'
+  # schedule:
+  #   # Esegui ogni 5 minuti (DISABILITATO per debug)
+  #   - cron: '*/5 * * * *'
   workflow_dispatch:
     inputs:
       force_check:
@@ -29,7 +29,7 @@ jobs:
         
     - name: 📦 Install dependencies
       run: |
-        pip install imaplib email datetime json re
+        echo "✅ Tutti i moduli necessari sono già inclusi in Python standard library"
         
     - name: 📬 Check for email replies
       env:
