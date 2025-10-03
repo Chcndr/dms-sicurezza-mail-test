@@ -9,7 +9,7 @@ class DMSAuthGate {
         this.whitelistUrl = options.whitelistUrl || '../viewer/whitelist.json';
         this.redirectUrl = options.redirectUrl || '../make-token.html';
         this.sessionKey = 'DMS_SESSION';
-        this.jwtSecret = 'dms_security_key_2024_v1';
+        this.jwtSecret = 'dms-security-secret-key-2024';
         this.debugMode = options.debug || false;
         
         this.log('🔐 DMS Auth Gate inizializzato');
