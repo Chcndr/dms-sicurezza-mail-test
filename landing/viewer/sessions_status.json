@@ -4,21 +4,21 @@
       "email": "bebaviola@gmail.com",
       "status": "active",
       "replied": true,
-      "activated": "2025-10-03T23:09:10.274159"
+      "activated": "2025-10-03T23:25:00.028283"
     },
     {
       "email": "checchi@me.com",
       "status": "active",
       "replied": true,
-      "activated": "2025-10-03T23:09:11.284442"
+      "activated": "2025-10-03T23:25:00.927143"
     },
     {
       "email": "info@dms.associates",
       "status": "active",
       "replied": true,
-      "activated": "2025-10-03T23:09:11.509723"
+      "activated": "2025-10-03T23:25:01.170043"
     }
   ],
-  "last_updated": "2025-10-03T23:09:11.509727",
+  "last_updated": "2025-10-03T23:25:01.170047",
   "version": "1.0"
 }
