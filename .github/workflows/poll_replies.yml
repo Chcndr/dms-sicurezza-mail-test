@@ -50,9 +50,10 @@ jobs:
         from datetime import datetime, timedelta
         from email.header import decode_header
         
-        # Configurazione IMAP
-        imap_host = os.environ['IMAP_HOST']
-        imap_user = os.environ['IMAP_USER']
+        # Configurazione IMAP (PostaSSL)
+        imap_host = os.environ.get('IMAP_HOST', 'in.postassl.it')
+        imap_port = int(os.environ.get('IMAP_PORT', '993'))
+        imap_user = os.environ.get('IMAP_USER', 'info@dms.associates')
         imap_pass = os.environ['IMAP_PASS']
         
         def decode_mime_words(s):
@@ -150,8 +151,8 @@ jobs:
             return entry
         
         try:
-            print("🔗 Connessione al server IMAP...")
-            mail = imaplib.IMAP4_SSL(imap_host)
+            print(f"🔗 Connessione al server IMAP {imap_host}:{imap_port}...")
+            mail = imaplib.IMAP4_SSL(imap_host, imap_port)
             mail.login(imap_user, imap_pass)
             mail.select('INBOX')
             
