@@ -69,7 +69,7 @@ jobs:
         def load_whitelist():
             """Carica la whitelist esistente"""
             try:
-                with open('landing/admin/viewer/whitelist.json', 'r') as f:
+                with open('landing/viewer/whitelist.json', 'r') as f:
                     return json.load(f)
             except FileNotFoundError:
                 return {"entries": [], "last_updated": None, "version": "1.0"}
@@ -77,7 +77,7 @@ jobs:
         def save_whitelist(whitelist):
             """Salva la whitelist aggiornata"""
             whitelist['last_updated'] = datetime.now().isoformat()
-            with open('landing/admin/viewer/whitelist.json', 'w') as f:
+            with open('landing/viewer/whitelist.json', 'w') as f:
                 json.dump(whitelist, f, indent=2)
         
         def add_to_whitelist(email_addr, duration_hours=1):
@@ -197,10 +197,10 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         
-        if git diff --quiet landing/admin/viewer/whitelist.json; then
+        if git diff --quiet landing/viewer/whitelist.json; then
           echo "ℹ️ Nessuna modifica alla whitelist"
         else
-          git add landing/admin/viewer/whitelist.json
+          git add landing/viewer/whitelist.json
           git commit -m "🔐 Auto-update whitelist from email replies - $(date)"
           git push
           echo "✅ Whitelist aggiornata e committata"
@@ -210,4 +210,4 @@ jobs:
       run: |
         echo "📬 Polling email completato"
         echo "🕒 Timestamp: $(date)"
-        echo "📁 Whitelist: landing/admin/viewer/whitelist.json"
+        echo "📁 Whitelist: landing/viewer/whitelist.json"

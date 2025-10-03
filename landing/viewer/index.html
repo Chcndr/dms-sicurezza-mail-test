@@ -249,7 +249,7 @@
                 <button class="btn btn-secondary" onclick="showDebugInfo()">
                     🔧 Info Debug
                 </button>
-                <a href="../make-token.html" class="btn btn-secondary">
+                <a href="../admin/make-token.html" class="btn btn-secondary">
                     🔑 Genera Nuovo Token
                 </a>
                 <button class="btn btn-danger" onclick="logout()">
@@ -287,7 +287,7 @@
     </div>
 
     <!-- Include Auth Gate -->
-    <script src="../auth-gate.js"></script>
+    <script src="../admin/auth-gate.js"></script>
     
     <script>
         let countdownInterval;
@@ -299,7 +299,7 @@
                 const result = await window.DMS_SESSION.init({ 
                     debug: true,
                     whitelistUrl: './whitelist.json',
-                    redirectUrl: '../make-token.html'
+                    redirectUrl: '../admin/make-token.html'
                 });
                 
                 if (result.success) {

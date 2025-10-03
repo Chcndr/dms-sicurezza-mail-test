@@ -6,7 +6,7 @@
 
 class DMSAuthGate {
     constructor(options = {}) {
-        this.whitelistUrl = options.whitelistUrl || './whitelist.json';
+        this.whitelistUrl = options.whitelistUrl || '../viewer/whitelist.json';
         this.redirectUrl = options.redirectUrl || '../make-token.html';
         this.sessionKey = 'DMS_SESSION';
         this.jwtSecret = 'dms_security_key_2024_v1';
