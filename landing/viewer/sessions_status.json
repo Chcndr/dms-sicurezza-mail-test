@@ -1,5 +1,24 @@
 {
-  "sessions": [],
-  "last_updated": null,
+  "sessions": [
+    {
+      "email": "bebaviola@gmail.com",
+      "status": "active",
+      "replied": true,
+      "activated": "2025-10-03T19:24:53.819965"
+    },
+    {
+      "email": "checchi@me.com",
+      "status": "active",
+      "replied": true,
+      "activated": "2025-10-03T19:24:54.833821"
+    },
+    {
+      "email": "info@dms.associates",
+      "status": "active",
+      "replied": true,
+      "activated": "2025-10-03T19:24:55.059386"
+    }
+  ],
+  "last_updated": "2025-10-03T19:24:55.059389",
   "version": "1.0"
 }

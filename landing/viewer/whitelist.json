@@ -1,5 +1,30 @@
 {
-  "entries": [],
-  "last_updated": null,
+  "entries": [
+    {
+      "email": "bebaviola@gmail.com",
+      "jti": "reply_1759519493_5258",
+      "added": "2025-10-03T19:24:53.819762",
+      "expires": 1759523093,
+      "source": "email_reply",
+      "status": "active"
+    },
+    {
+      "email": "checchi@me.com",
+      "jti": "reply_1759519494_1990",
+      "added": "2025-10-03T19:24:54.833602",
+      "expires": 1759523094,
+      "source": "email_reply",
+      "status": "active"
+    },
+    {
+      "email": "info@dms.associates",
+      "jti": "reply_1759519495_5141",
+      "added": "2025-10-03T19:24:55.059201",
+      "expires": 1759523095,
+      "source": "email_reply",
+      "status": "active"
+    }
+  ],
+  "last_updated": "2025-10-03T19:24:55.059207",
   "version": "1.0"
 }
