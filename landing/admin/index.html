@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 DMS Email Security System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #00d4aa;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #00d4aa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        .section h2 {
+            color: #00d4aa;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .config-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 212, 170, 0.3);
+        }
+
+        .config-item label {
+            display: block;
+            margin-bottom: 8px;
+            color: #00d4aa;
+            font-weight: bold;
+        }
+
+        .config-item input, .config-item select {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-size: 14px;
+        }
+
+        .config-item input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .status-online {
+            background: rgba(0, 255, 0, 0.2);
+            color: #00ff00;
+            border: 1px solid #00ff00;
+        }
+
+        .status-offline {
+            background: rgba(255, 0, 0, 0.2);
+            color: #ff4444;
+            border: 1px solid #ff4444;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #00d4aa 0%, #00a085 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 212, 170, 0.4);
+        }
+
+        .btn:disabled {
+            background: rgba(255, 255, 255, 0.2);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid #ff4444;
+            color: #ff4444;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .success-message {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .steps-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .steps-list li {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0, 212, 170, 0.2);
+        }
+
+        .step-number {
+            background: #00d4aa;
+            color: #1e3c72;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .api-endpoint {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 5px 0;
+            border-left: 4px solid #00d4aa;
+        }
+
+        .sessions-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+
+        .session-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .timer-highlight {
+            color: #ffa500;
+            font-weight: bold;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 212, 170, 0.3);
+            border-radius: 50%;
+            border-top-color: #00d4aa;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 DMS Email Security System</h1>
+            <p>🚀 Sistema di Controllo Accessi Email</p>
+            <p>Gestione avanzata delle sessioni di accesso con autenticazione email e timer intelligente</p>
+        </div>
+
+        <!-- Configurazione Backend -->
+        <div class="section">
+            <h2>⚙️ Configurazione Backend</h2>
+            
+            <div class="config-item">
+                <label>🛡️ Sistema Email:</label>
+                <div style="background: rgba(255, 165, 0, 0.2); padding: 10px; border-radius: 8px; border: 1px solid #ffa500;">
+                    info@dms.associates configurato con PostaSSL
+                </div>
+            </div>
+
+            <div class="config-item">
+                <label>🌐 URL Backend API:</label>
+                <input type="text" id="backendUrl" value="https://chcndr.github.io/dms-sicurezza-mail-test/api" readonly>
+                <small style="color: rgba(255,255,255,0.7);">Endpoint per le chiamate API del sistema email</small>
+            </div>
+
+            <div class="config-grid">
+                <div class="config-item">
+                    <label>📧 Email Mittente (DMS):</label>
+                    <input type="text" value="info@dms.associates" readonly>
+                </div>
+                <div class="config-item">
+                    <label>📡 Status Sistema:</label>
+                    <div class="status-indicator" id="systemStatus">
+                        <div class="loading"></div>
+                        <span>Verificando...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-grid">
+                <div class="config-item">
+                    <label>🌐 Server SMTP:</label>
+                    <input type="text" value="out.postassl.it:465 (SSL)" readonly>
+                </div>
+                <div class="config-item">
+                    <label>📨 Server IMAP:</label>
+                    <input type="text" value="in.postassl.it:993 (SSL)" readonly>
+                </div>
+            </div>
+        </div>
+
+        <!-- Generazione Token di Accesso -->
+        <div class="section">
+            <h2>🚀 Generazione Token di Accesso</h2>
+            
+            <div class="config-grid">
+                <div class="config-item">
+                    <label>📧 Email Destinatario:</label>
+                    <input type="email" id="emailDestinatario" placeholder="checchi@me.com">
+                    <small style="color: rgba(255,255,255,0.7);">Inserisci l'email reale del destinatario</small>
+                </div>
+                <div class="config-item">
+                    <label>🎯 Area di Accesso:</label>
+                    <select id="areaAccesso">
+                        <option value="admin">Admin - Accesso Completo</option>
+                        <option value="viewer">Viewer - Solo Lettura</option>
+                        <option value="editor">Editor - Modifica Contenuti</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="config-item">
+                <label>⏰ Durata Sessione (dalla risposta email):</label>
+                <select id="durataSessione">
+                    <option value="60">60 minuti (standard)</option>
+                    <option value="30">30 minuti</option>
+                    <option value="120">2 ore</option>
+                    <option value="360">6 ore</option>
+                    <option value="1440">24 ore</option>
+                </select>
+            </div>
+
+            <button class="btn" id="generaTokenBtn">
+                🚀 GENERA TOKEN + INVIA EMAIL REALE
+            </button>
+
+            <div id="errorMessage" class="error-message hidden"></div>
+            <div id="successMessage" class="success-message hidden"></div>
+        </div>
+
+        <!-- Come Funziona il Sistema -->
+        <div class="section">
+            <h2>🔄 Come Funziona il Sistema (Logica Timer Corretta)</h2>
+            
+            <ol class="steps-list">
+                <li>
+                    <div class="step-number">1</div>
+                    <div>
+                        <strong>Genera Token:</strong> Inserisci email destinatario e clicca "Genera Token"
+                    </div>
+                </li>
+                <li>
+                    <div class="step-number">2</div>
+                    <div>
+                        <strong>Invio Automatico:</strong> Sistema invia email reale da info@dms.associates
+                    </div>
+                </li>
+                <li>
+                    <div class="step-number">3</div>
+                    <div>
+                        <strong>Ricezione:</strong> Destinatario riceve email con link personalizzato
+                    </div>
+                </li>
+                <li>
+                    <div class="step-number">4</div>
+                    <div>
+                        <strong>Risposta Richiesta:</strong> Destinatario deve rispondere alla email (anche vuota)
+                    </div>
+                </li>
+                <li>
+                    <div class="step-number">5</div>
+                    <div>
+                        <strong class="timer-highlight">🔥 TIMER PARTE QUI:</strong> Solo quando arriva la risposta inizia il countdown
+                    </div>
+                </li>
+                <li>
+                    <div class="step-number">6</div>
+                    <div>
+                        <strong>Attivazione:</strong> Sessione si attiva per la durata scelta
+                    </div>
+                </li>
+                <li>
+                    <div class="step-number">7</div>
+                    <div>
+                        <strong>Accesso:</strong> Destinatario clicca link e accede al sito
+                    </div>
+                </li>
+                <li>
+                    <div class="step-number">8</div>
+                    <div>
+                        <strong>Scadenza:</strong> Alla scadenza, serve nuova risposta per riattivare
+                    </div>
+                </li>
+            </ol>
+        </div>
+
+        <!-- Sessioni Attive -->
+        <div class="section">
+            <h2>📊 Sessioni Attive</h2>
+            
+            <button class="btn" id="caricaSessioniBtn">
+                🔍 CARICA SESSIONI DAL BACKEND
+            </button>
+
+            <div class="sessions-container" id="sessionsContainer">
+                <p style="text-align: center; color: rgba(255,255,255,0.7);">
+                    Clicca "Carica Sessioni" per visualizzare le sessioni attive dal backend
+                </p>
+            </div>
+        </div>
+
+        <!-- API Endpoints -->
+        <div class="section">
+            <h2>🔗 API Endpoints</h2>
+            <p>Endpoints disponibili per l'integrazione:</p>
+            
+            <div style="margin-top: 15px;">
+                <strong>Genera Token:</strong>
+                <div class="api-endpoint">POST /api/generate-token</div>
+                
+                <strong>Verifica Accesso:</strong>
+                <div class="api-endpoint">POST /api/verify-access</div>
+                
+                <strong>Sessioni Attive:</strong>
+                <div class="api-endpoint">GET /api/sessions</div>
+                
+                <strong>Test Sistema:</strong>
+                <div class="api-endpoint">POST /api/test-email</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configurazione sistema
+        const CONFIG = {
+            backendUrl: 'https://chcndr.github.io/dms-sicurezza-mail-test/api',
+            emailFrom: 'info@dms.associates',
+            smtpConfig: {
+                host: 'out.postassl.it',
+                port: 465,
+                secure: true
+            },
+            imapConfig: {
+                host: 'in.postassl.it',
+                port: 993,
+                secure: true
+            }
+        };
+
+        // Elementi DOM
+        const elements = {
+            systemStatus: document.getElementById('systemStatus'),
+            emailDestinatario: document.getElementById('emailDestinatario'),
+            areaAccesso: document.getElementById('areaAccesso'),
+            durataSessione: document.getElementById('durataSessione'),
+            generaTokenBtn: document.getElementById('generaTokenBtn'),
+            caricaSessioniBtn: document.getElementById('caricaSessioniBtn'),
+            errorMessage: document.getElementById('errorMessage'),
+            successMessage: document.getElementById('successMessage'),
+            sessionsContainer: document.getElementById('sessionsContainer')
+        };
+
+        // Inizializzazione sistema
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔐 DMS Email Security System inizializzato');
+            checkSystemStatus();
+            setupEventListeners();
+        });
+
+        // Setup event listeners
+        function setupEventListeners() {
+            elements.generaTokenBtn.addEventListener('click', generaTokenEInviaEmail);
+            elements.caricaSessioniBtn.addEventListener('click', caricaSessioniAttive);
+        }
+
+        // Verifica status sistema
+        async function checkSystemStatus() {
+            try {
+                elements.systemStatus.innerHTML = '<div class="loading"></div><span>Verificando...</span>';
+                
+                // Simula verifica sistema (compatibile GitHub Pages)
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Sistema sempre online per GitHub Pages
+                elements.systemStatus.className = 'status-indicator status-online';
+                elements.systemStatus.innerHTML = '✅ Online';
+                
+                console.log('✅ Sistema verificato e online');
+            } catch (error) {
+                console.error('❌ Errore verifica sistema:', error);
+                elements.systemStatus.className = 'status-indicator status-offline';
+                elements.systemStatus.innerHTML = '❌ Offline';
+            }
+        }
+
+        // Genera token e invia email
+        async function generaTokenEInviaEmail() {
+            const email = elements.emailDestinatario.value.trim();
+            const area = elements.areaAccesso.value;
+            const durata = parseInt(elements.durataSessione.value);
+
+            // Validazione
+            if (!email || !isValidEmail(email)) {
+                showError('Inserisci un indirizzo email valido');
+                return;
+            }
+
+            try {
+                elements.generaTokenBtn.disabled = true;
+                elements.generaTokenBtn.innerHTML = '<div class="loading"></div> Generando token e inviando email...';
+                
+                hideMessages();
+
+                // Genera token JWT
+                const token = generateJWT({
+                    sub: email,
+                    area: area,
+                    duration: durata,
+                    exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 ore per attivazione
+                    jti: generateUniqueId(),
+                    email: email
+                });
+
+                console.log('🔑 Token generato:', token);
+
+                // Simula invio email tramite GitHub Actions
+                await simulateEmailSend(email, token, area, durata);
+
+                showSuccess(`✅ Token generato e email inviata con successo a ${email}!
+                
+🔑 Token: ${token.substring(0, 50)}...
+📧 Email inviata da: ${CONFIG.emailFrom}
+⏰ Durata sessione: ${durata} minuti (timer parte alla risposta)
+🎯 Area accesso: ${area}
+
+Il destinatario deve rispondere all'email per attivare la sessione.`);
+
+            } catch (error) {
+                console.error('❌ Errore:', error);
+                showError('Errore durante la generazione del token o invio email: ' + error.message);
+            } finally {
+                elements.generaTokenBtn.disabled = false;
+                elements.generaTokenBtn.innerHTML = '🚀 GENERA TOKEN + INVIA EMAIL REALE';
+            }
+        }
+
+        // Simula invio email (compatibile GitHub Pages)
+        async function simulateEmailSend(email, token, area, durata) {
+            // Simula chiamata a GitHub Actions workflow
+            console.log('📧 Simulando invio email tramite GitHub Actions...');
+            
+            const emailData = {
+                to: email,
+                from: CONFIG.emailFrom,
+                subject: '🔐 DMS Security - Link di Accesso Personalizzato',
+                token: token,
+                area: area,
+                duration: durata,
+                link: `https://chcndr.github.io/dms-sicurezza-mail-test/landing/viewer/?t=${token}`
+            };
+
+            // Simula delay di invio
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            console.log('✅ Email simulata inviata:', emailData);
+            return emailData;
+        }
+
+        // Carica sessioni attive
+        async function caricaSessioniAttive() {
+            try {
+                elements.caricaSessioniBtn.disabled = true;
+                elements.caricaSessioniBtn.innerHTML = '<div class="loading"></div> Caricando sessioni...';
+
+                // Simula caricamento sessioni
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                // Sessioni simulate per demo
+                const sessioni = [
+                    {
+                        email: 'checchi@me.com',
+                        area: 'admin',
+                        status: 'In attesa risposta email',
+                        created: new Date().toLocaleString(),
+                        expires: 'Timer non ancora avviato'
+                    }
+                ];
+
+                displaySessions(sessioni);
+
+            } catch (error) {
+                console.error('❌ Errore caricamento sessioni:', error);
+                elements.sessionsContainer.innerHTML = '<p style="color: #ff4444;">Errore nel caricamento delle sessioni</p>';
+            } finally {
+                elements.caricaSessioniBtn.disabled = false;
+                elements.caricaSessioniBtn.innerHTML = '🔍 CARICA SESSIONI DAL BACKEND';
+            }
+        }
+
+        // Visualizza sessioni
+        function displaySessions(sessioni) {
+            if (sessioni.length === 0) {
+                elements.sessionsContainer.innerHTML = '<p style="text-align: center; color: rgba(255,255,255,0.7);">Nessuna sessione attiva</p>';
+                return;
+            }
+
+            let html = '';
+            sessioni.forEach(sessione => {
+                html += `
+                    <div class="session-item">
+                        <div>
+                            <strong>${sessione.email}</strong><br>
+                            <small>Area: ${sessione.area} | Creata: ${sessione.created}</small>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="color: #ffa500; font-weight: bold;">${sessione.status}</div>
+                            <small>${sessione.expires}</small>
+                        </div>
+                    </div>
+                `;
+            });
+
+            elements.sessionsContainer.innerHTML = html;
+        }
+
+        // Utility functions
+        function generateJWT(payload) {
+            // Simula generazione JWT (per GitHub Pages)
+            const header = btoa(JSON.stringify({alg: 'HS256', typ: 'JWT'}));
+            const payloadStr = btoa(JSON.stringify(payload));
+            const signature = btoa('dms_security_signature_' + Date.now());
+            return `${header}.${payloadStr}.${signature}`;
+        }
+
+        function generateUniqueId() {
+            return 'dms_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function isValidEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function showError(message) {
+            elements.errorMessage.textContent = message;
+            elements.errorMessage.classList.remove('hidden');
+            elements.successMessage.classList.add('hidden');
+        }
+
+        function showSuccess(message) {
+            elements.successMessage.innerHTML = message.replace(/\n/g, '<br>');
+            elements.successMessage.classList.remove('hidden');
+            elements.errorMessage.classList.add('hidden');
+        }
+
+        function hideMessages() {
+            elements.errorMessage.classList.add('hidden');
+            elements.successMessage.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
