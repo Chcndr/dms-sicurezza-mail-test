@@ -543,6 +543,21 @@
 
                 console.log('🔑 Token generato:', token);
 
+                // Salva sessione nel localStorage
+                const sessionKey = `dms_session_${email.replace('@', '_').replace('.', '_')}`;
+                const sessionData = {
+                    email: email,
+                    area: area,
+                    token: token,
+                    duration: durata,
+                    created: new Date().toLocaleString(),
+                    expires: new Date(Date.now() + durata * 60000).toISOString(),
+                    replied: false,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem(sessionKey, JSON.stringify(sessionData));
+                console.log('💾 Sessione salvata:', sessionKey);
+
                 // Simula invio email tramite GitHub Actions
                 await simulateEmailSend(email, token, area, durata);
 
@@ -659,19 +674,34 @@ Il destinatario deve rispondere all'email per attivare la sessione.`);
                 elements.caricaSessioniBtn.disabled = true;
                 elements.caricaSessioniBtn.innerHTML = '<div class="loading"></div> Caricando sessioni...';
 
-                // Simula caricamento sessioni
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                // Carica sessioni reali dal localStorage
+                await new Promise(resolve => setTimeout(resolve, 1000));
 
-                // Sessioni simulate per demo
-                const sessioni = [
-                    {
-                        email: 'checchi@me.com',
-                        area: 'admin',
-                        status: 'In attesa risposta email',
-                        created: new Date().toLocaleString(),
-                        expires: 'Timer non ancora avviato'
+                // Carica tutte le sessioni salvate
+                const sessioni = [];
+                
+                // Cerca tutte le sessioni nel localStorage
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('dms_session_')) {
+                        try {
+                            const sessionData = JSON.parse(localStorage.getItem(key));
+                            if (sessionData && sessionData.email) {
+                                sessioni.push({
+                                    email: sessionData.email,
+                                    area: sessionData.area || 'admin',
+                                    status: sessionData.replied ? 'Sessione Attiva' : 'In attesa risposta email',
+                                    created: sessionData.created || 'N/A',
+                                    expires: sessionData.replied ? 
+                                        `Scade: ${new Date(sessionData.expires).toLocaleString()}` : 
+                                        'Timer non ancora avviato'
+                                });
+                            }
+                        } catch (e) {
+                            console.warn('Sessione corrotta ignorata:', key);
+                        }
                     }
-                ];
+                }
 
                 displaySessions(sessioni);
 
