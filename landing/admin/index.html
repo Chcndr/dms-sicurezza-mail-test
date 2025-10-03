@@ -483,6 +483,16 @@
             checkAdminLogin();
             checkSystemStatus();
             setupEventListeners();
+            
+            // Sincronizzazione automatica ogni 30 secondi
+            setInterval(async () => {
+                try {
+                    await syncSessionsStatus();
+                    console.log('🔄 Sincronizzazione automatica completata');
+                } catch (error) {
+                    console.warn('⚠️ Errore sincronizzazione automatica:', error);
+                }
+            }, 30000);
         });
 
         // Setup event listeners
@@ -668,14 +678,46 @@ Il destinatario deve rispondere all'email per attivare la sessione.`);
             }
         }
 
+        // Sincronizza localStorage con sessions_status.json
+        async function syncSessionsStatus() {
+            try {
+                const response = await fetch('../viewer/sessions_status.json?v=' + Date.now());
+                if (response.ok) {
+                    const sessionsStatus = await response.json();
+                    
+                    // Aggiorna localStorage con i nuovi stati
+                    for (const statusSession of sessionsStatus.sessions) {
+                        if (statusSession.replied) {
+                            const sessionKey = `dms_session_${statusSession.email.replace('@', '_').replace('.', '_')}`;
+                            const existingSession = localStorage.getItem(sessionKey);
+                            
+                            if (existingSession) {
+                                const sessionData = JSON.parse(existingSession);
+                                sessionData.replied = true;
+                                sessionData.status = statusSession.status;
+                                sessionData.activated = statusSession.activated;
+                                localStorage.setItem(sessionKey, JSON.stringify(sessionData));
+                                console.log(`🔄 Sincronizzata sessione: ${statusSession.email} -> ${statusSession.status}`);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn('⚠️ Errore sincronizzazione sessions_status:', error);
+            }
+        }
+
         // Carica sessioni attive
         async function caricaSessioniAttive() {
             try {
                 elements.caricaSessioniBtn.disabled = true;
                 elements.caricaSessioniBtn.innerHTML = '<div class="loading"></div> Caricando sessioni...';
 
+                // Prima sincronizza con sessions_status.json
+                await syncSessionsStatus();
+
                 // Carica sessioni reali dal localStorage
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                await new Promise(resolve => setTimeout(resolve, 500));
 
                 // Carica tutte le sessioni salvate
                 const sessioni = [];

@@ -80,6 +80,43 @@ jobs:
             with open('landing/viewer/whitelist.json', 'w') as f:
                 json.dump(whitelist, f, indent=2)
         
+        def load_sessions_status():
+            """Carica lo stato delle sessioni"""
+            try:
+                with open('landing/viewer/sessions_status.json', 'r') as f:
+                    return json.load(f)
+            except FileNotFoundError:
+                return {"sessions": [], "last_updated": None, "version": "1.0"}
+        
+        def save_sessions_status(sessions_status):
+            """Salva lo stato delle sessioni aggiornato"""
+            sessions_status['last_updated'] = datetime.now().isoformat()
+            with open('landing/viewer/sessions_status.json', 'w') as f:
+                json.dump(sessions_status, f, indent=2)
+        
+        def update_session_status(email_addr, status="active"):
+            """Aggiorna lo stato di una sessione specifica"""
+            sessions_status = load_sessions_status()
+            
+            # Trova e aggiorna la sessione
+            for session in sessions_status['sessions']:
+                if session.get('email') == email_addr:
+                    session['status'] = status
+                    session['replied'] = True
+                    session['activated'] = datetime.now().isoformat()
+                    break
+            else:
+                # Se non trovata, crea nuova entry
+                sessions_status['sessions'].append({
+                    "email": email_addr,
+                    "status": status,
+                    "replied": True,
+                    "activated": datetime.now().isoformat()
+                })
+            
+            save_sessions_status(sessions_status)
+            return sessions_status
+        
         def add_to_whitelist(email_addr, duration_hours=1):
             """Aggiunge un'email alla whitelist"""
             whitelist = load_whitelist()
@@ -165,10 +202,14 @@ jobs:
                         # Aggiungi alla whitelist
                         entry = add_to_whitelist(sender_email, duration_hours=1)
                         
+                        # Aggiorna stato sessione
+                        update_session_status(sender_email, "active")
+                        
                         print(f"🔐 Aggiunto alla whitelist:")
                         print(f"   Email: {entry['email']}")
                         print(f"   JTI: {entry['jti']}")
                         print(f"   Scadenza: {datetime.fromtimestamp(entry['expires']).strftime('%d/%m/%Y %H:%M')}")
+                        print(f"📊 Stato sessione aggiornato: {sender_email} -> active")
                         
                         processed_count += 1
                     
@@ -191,19 +232,20 @@ jobs:
             exit(1)
         EOF
         
-    - name: 📤 Commit whitelist changes
+    - name: 📤 Commit changes
       if: success()
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         
-        if git diff --quiet landing/viewer/whitelist.json; then
-          echo "ℹ️ Nessuna modifica alla whitelist"
+        # Controlla se ci sono modifiche
+        if git diff --quiet landing/viewer/whitelist.json landing/viewer/sessions_status.json; then
+          echo "ℹ️ Nessuna modifica ai file di stato"
         else
-          git add landing/viewer/whitelist.json
-          git commit -m "🔐 Auto-update whitelist from email replies - $(date)"
+          git add landing/viewer/whitelist.json landing/viewer/sessions_status.json
+          git commit -m "🔐 Auto-update whitelist and sessions from email replies - $(date)"
           git push
-          echo "✅ Whitelist aggiornata e committata"
+          echo "✅ Whitelist e stato sessioni aggiornati e committati"
         fi
         
     - name: 📊 Summary
