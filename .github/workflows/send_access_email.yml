@@ -68,6 +68,8 @@ jobs:
         msg = MIMEMultipart('alternative')
         msg['From'] = smtp_from
         msg['To'] = recipient
+        msg['Cc'] = smtp_from  # CC al sistema per ricevere risposte
+        msg['Reply-To'] = smtp_from  # Reply-To per le risposte
         msg['Subject'] = subject
         
         # Template HTML
@@ -100,7 +102,7 @@ jobs:
                     
                     <ol>
                         <li><strong>Clicca sul link di accesso</strong> qui sotto</li>
-                        <li><strong>Rispondi a questa email</strong> con qualsiasi messaggio (anche solo "ok")</li>
+                        <li><strong>Rispondi a TUTTI</strong> con qualsiasi messaggio (anche solo "ok")</li>
                         <li><strong>Attendi l'attivazione</strong> - il sistema processerà la tua risposta automaticamente</li>
                     </ol>
                     
@@ -111,7 +113,7 @@ jobs:
                     <div class="warning">
                         <strong>⚠️ Importante:</strong><br>
                         • Il link è valido per un tempo limitato<br>
-                        • Devi rispondere a questa email per attivare l'accesso<br>
+                        • Devi rispondere a TUTTI per attivare l'accesso<br>
                         • Non condividere questo link con altri
                     </div>
                     
@@ -140,12 +142,12 @@ jobs:
         
         Per attivare la tua sessione:
         1. Clicca sul link: {access_link}
-        2. Rispondi a questa email con qualsiasi messaggio
+        2. Rispondi a TUTTI con qualsiasi messaggio
         3. Attendi l'attivazione automatica
         
         ⚠️ IMPORTANTE:
         - Il link è valido per un tempo limitato
-        - Devi rispondere a questa email per attivare l'accesso
+        - Devi rispondere a TUTTI per attivare l'accesso
         - Non condividere questo link con altri
         
         📧 Email inviata automaticamente dal sistema DMS Security

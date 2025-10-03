@@ -235,8 +235,9 @@ jobs:
     - name: 📤 Commit changes
       if: success()
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
+        # Configura git per il commit automatico
+        git config user.name "DMS Email Security Bot"
+        git config user.email "action@github.com"
         
         # Controlla se ci sono modifiche
         if git diff --quiet landing/viewer/whitelist.json landing/viewer/sessions_status.json; then
