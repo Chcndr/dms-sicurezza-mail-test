@@ -1,0 +1,213 @@
+name: 📬 Poll Email Replies
+
+on:
+  schedule:
+    # Esegui ogni 5 minuti
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      force_check:
+        description: 'Forza controllo immediato'
+        required: false
+        default: 'true'
+        type: boolean
+
+jobs:
+  poll-replies:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: 🐍 Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: 📦 Install dependencies
+      run: |
+        pip install imaplib email datetime json re
+        
+    - name: 📬 Check for email replies
+      env:
+        IMAP_HOST: ${{ secrets.IMAP_HOST }}
+        IMAP_USER: ${{ secrets.IMAP_USER }}
+        IMAP_PASS: ${{ secrets.IMAP_PASS }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        python3 << 'EOF'
+        import imaplib
+        import email
+        import json
+        import re
+        import os
+        from datetime import datetime, timedelta
+        from email.header import decode_header
+        
+        # Configurazione IMAP
+        imap_host = os.environ['IMAP_HOST']
+        imap_user = os.environ['IMAP_USER']
+        imap_pass = os.environ['IMAP_PASS']
+        
+        def decode_mime_words(s):
+            """Decodifica le parole MIME nell'header"""
+            return ''.join(
+                word.decode(encoding or 'utf-8') if isinstance(word, bytes) else word
+                for word, encoding in decode_header(s)
+            )
+        
+        def extract_token_from_subject(subject):
+            """Estrae informazioni del token dall'oggetto email"""
+            # Cerca pattern come "DMS Security", "Token", etc.
+            if 'dms' in subject.lower() and 'security' in subject.lower():
+                return True
+            return False
+        
+        def load_whitelist():
+            """Carica la whitelist esistente"""
+            try:
+                with open('landing/admin/viewer/whitelist.json', 'r') as f:
+                    return json.load(f)
+            except FileNotFoundError:
+                return {"entries": [], "last_updated": None, "version": "1.0"}
+        
+        def save_whitelist(whitelist):
+            """Salva la whitelist aggiornata"""
+            whitelist['last_updated'] = datetime.now().isoformat()
+            with open('landing/admin/viewer/whitelist.json', 'w') as f:
+                json.dump(whitelist, f, indent=2)
+        
+        def add_to_whitelist(email_addr, duration_hours=1):
+            """Aggiunge un'email alla whitelist"""
+            whitelist = load_whitelist()
+            
+            # Calcola scadenza
+            expires = datetime.now() + timedelta(hours=duration_hours)
+            
+            # Genera JTI univoco
+            jti = f"reply_{int(datetime.now().timestamp())}_{hash(email_addr) % 10000}"
+            
+            # Crea entry
+            entry = {
+                "email": email_addr,
+                "jti": jti,
+                "added": datetime.now().isoformat(),
+                "expires": int(expires.timestamp()),
+                "source": "email_reply",
+                "status": "active"
+            }
+            
+            # Rimuovi eventuali entry esistenti per la stessa email
+            whitelist['entries'] = [e for e in whitelist['entries'] if e.get('email') != email_addr]
+            
+            # Aggiungi nuova entry
+            whitelist['entries'].append(entry)
+            
+            save_whitelist(whitelist)
+            return entry
+        
+        try:
+            print("🔗 Connessione al server IMAP...")
+            mail = imaplib.IMAP4_SSL(imap_host)
+            mail.login(imap_user, imap_pass)
+            mail.select('INBOX')
+            
+            # Cerca email degli ultimi 30 minuti
+            since_date = (datetime.now() - timedelta(minutes=30)).strftime('%d-%b-%Y')
+            
+            print(f"🔍 Ricerca email dal {since_date}...")
+            status, messages = mail.search(None, f'SINCE {since_date}')
+            
+            if status != 'OK':
+                print("❌ Errore nella ricerca email")
+                exit(1)
+            
+            email_ids = messages[0].split()
+            print(f"📧 Trovate {len(email_ids)} email")
+            
+            processed_count = 0
+            
+            for email_id in email_ids[-10:]:  # Controlla solo le ultime 10 email
+                try:
+                    status, msg_data = mail.fetch(email_id, '(RFC822)')
+                    if status != 'OK':
+                        continue
+                    
+                    # Parse email
+                    email_message = email.message_from_bytes(msg_data[0][1])
+                    
+                    # Estrai informazioni
+                    subject = decode_mime_words(email_message.get('Subject', ''))
+                    from_addr = decode_mime_words(email_message.get('From', ''))
+                    date_str = email_message.get('Date', '')
+                    
+                    # Estrai solo l'indirizzo email
+                    email_match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', from_addr)
+                    sender_email = email_match.group(0) if email_match else from_addr
+                    
+                    print(f"📨 Email da: {sender_email}")
+                    print(f"📝 Oggetto: {subject}")
+                    
+                    # Controlla se è una risposta al nostro sistema
+                    is_dms_reply = (
+                        extract_token_from_subject(subject) or
+                        'dms' in subject.lower() or
+                        'security' in subject.lower() or
+                        'accesso' in subject.lower()
+                    )
+                    
+                    if is_dms_reply:
+                        print(f"✅ Rilevata risposta DMS da {sender_email}")
+                        
+                        # Aggiungi alla whitelist
+                        entry = add_to_whitelist(sender_email, duration_hours=1)
+                        
+                        print(f"🔐 Aggiunto alla whitelist:")
+                        print(f"   Email: {entry['email']}")
+                        print(f"   JTI: {entry['jti']}")
+                        print(f"   Scadenza: {datetime.fromtimestamp(entry['expires']).strftime('%d/%m/%Y %H:%M')}")
+                        
+                        processed_count += 1
+                    
+                except Exception as e:
+                    print(f"⚠️ Errore elaborazione email {email_id}: {str(e)}")
+                    continue
+            
+            mail.close()
+            mail.logout()
+            
+            print(f"✅ Elaborazione completata: {processed_count} risposte processate")
+            
+            if processed_count > 0:
+                print("📝 Whitelist aggiornata con successo")
+            else:
+                print("ℹ️ Nessuna nuova risposta da processare")
+                
+        except Exception as e:
+            print(f"❌ Errore durante il polling: {str(e)}")
+            exit(1)
+        EOF
+        
+    - name: 📤 Commit whitelist changes
+      if: success()
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        if git diff --quiet landing/admin/viewer/whitelist.json; then
+          echo "ℹ️ Nessuna modifica alla whitelist"
+        else
+          git add landing/admin/viewer/whitelist.json
+          git commit -m "🔐 Auto-update whitelist from email replies - $(date)"
+          git push
+          echo "✅ Whitelist aggiornata e committata"
+        fi
+        
+    - name: 📊 Summary
+      run: |
+        echo "📬 Polling email completato"
+        echo "🕒 Timestamp: $(date)"
+        echo "📁 Whitelist: landing/admin/viewer/whitelist.json"

@@ -1,0 +1,185 @@
+name: 📧 Send Access Email
+
+on:
+  workflow_dispatch:
+    inputs:
+      recipient_email:
+        description: 'Email destinatario'
+        required: true
+        type: string
+      access_link:
+        description: 'Link di accesso con token'
+        required: true
+        type: string
+      subject_line:
+        description: 'Oggetto email'
+        required: false
+        default: '🔐 DMS Security - Link di Accesso'
+        type: string
+
+jobs:
+  send-email:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: 📦 Install dependencies
+      run: |
+        pip install smtplib email-mime-text email-mime-multipart
+        
+    - name: 📧 Send access email
+      env:
+        SMTP_HOST: ${{ secrets.SMTP_HOST }}
+        SMTP_PORT: ${{ secrets.SMTP_PORT }}
+        SMTP_USER: ${{ secrets.SMTP_USER }}
+        SMTP_PASS: ${{ secrets.SMTP_PASS }}
+        SMTP_FROM: ${{ secrets.SMTP_FROM }}
+        RECIPIENT_EMAIL: ${{ github.event.inputs.recipient_email }}
+        ACCESS_LINK: ${{ github.event.inputs.access_link }}
+        SUBJECT_LINE: ${{ github.event.inputs.subject_line }}
+      run: |
+        python3 << 'EOF'
+        import smtplib
+        import os
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        from datetime import datetime
+        
+        # Configurazione SMTP
+        smtp_host = os.environ['SMTP_HOST']
+        smtp_port = int(os.environ['SMTP_PORT'])
+        smtp_user = os.environ['SMTP_USER']
+        smtp_pass = os.environ['SMTP_PASS']
+        smtp_from = os.environ['SMTP_FROM']
+        
+        # Dati email
+        recipient = os.environ['RECIPIENT_EMAIL']
+        access_link = os.environ['ACCESS_LINK']
+        subject = os.environ['SUBJECT_LINE']
+        
+        # Crea il messaggio
+        msg = MIMEMultipart('alternative')
+        msg['From'] = smtp_from
+        msg['To'] = recipient
+        msg['Subject'] = subject
+        
+        # Template HTML
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
+                .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
+                .button {{ display: inline-block; background: #00d2d3; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0; }}
+                .warning {{ background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }}
+                .footer {{ text-align: center; color: #666; font-size: 12px; margin-top: 30px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>🔐 DMS Security</h1>
+                    <p>Sistema di Accesso Sicuro</p>
+                </div>
+                
+                <div class="content">
+                    <h2>Ciao! 👋</h2>
+                    
+                    <p>Hai ricevuto un link di accesso sicuro per il sistema DMS. Per attivare la tua sessione, segui questi passaggi:</p>
+                    
+                    <ol>
+                        <li><strong>Clicca sul link di accesso</strong> qui sotto</li>
+                        <li><strong>Rispondi a questa email</strong> con qualsiasi messaggio (anche solo "ok")</li>
+                        <li><strong>Attendi l'attivazione</strong> - il sistema processerà la tua risposta automaticamente</li>
+                    </ol>
+                    
+                    <div style="text-align: center;">
+                        <a href="{access_link}" class="button">🚀 Accedi al Sistema DMS</a>
+                    </div>
+                    
+                    <div class="warning">
+                        <strong>⚠️ Importante:</strong><br>
+                        • Il link è valido per un tempo limitato<br>
+                        • Devi rispondere a questa email per attivare l'accesso<br>
+                        • Non condividere questo link con altri
+                    </div>
+                    
+                    <p><strong>Link diretto:</strong><br>
+                    <code style="background: #e9ecef; padding: 5px; border-radius: 3px; word-break: break-all;">{access_link}</code></p>
+                    
+                    <p>Se hai problemi con il link, copia e incolla l'URL completo nel tuo browser.</p>
+                    
+                    <div class="footer">
+                        <p>📧 Email inviata automaticamente dal sistema DMS Security</p>
+                        <p>🕒 {datetime.now().strftime('%d/%m/%Y alle %H:%M')}</p>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Template testo semplice
+        text_body = f"""
+        🔐 DMS Security - Link di Accesso
+        
+        Ciao!
+        
+        Hai ricevuto un link di accesso sicuro per il sistema DMS.
+        
+        Per attivare la tua sessione:
+        1. Clicca sul link: {access_link}
+        2. Rispondi a questa email con qualsiasi messaggio
+        3. Attendi l'attivazione automatica
+        
+        ⚠️ IMPORTANTE:
+        - Il link è valido per un tempo limitato
+        - Devi rispondere a questa email per attivare l'accesso
+        - Non condividere questo link con altri
+        
+        📧 Email inviata automaticamente dal sistema DMS Security
+        🕒 {datetime.now().strftime('%d/%m/%Y alle %H:%M')}
+        """
+        
+        # Aggiungi entrambe le versioni
+        msg.attach(MIMEText(text_body, 'plain', 'utf-8'))
+        msg.attach(MIMEText(html_body, 'html', 'utf-8'))
+        
+        try:
+            # Connessione SMTP
+            print(f"🔗 Connessione a {smtp_host}:{smtp_port}...")
+            server = smtplib.SMTP(smtp_host, smtp_port)
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            
+            # Invio email
+            print(f"📧 Invio email a {recipient}...")
+            server.send_message(msg)
+            server.quit()
+            
+            print("✅ Email inviata con successo!")
+            print(f"📬 Destinatario: {recipient}")
+            print(f"📝 Oggetto: {subject}")
+            
+        except Exception as e:
+            print(f"❌ Errore invio email: {str(e)}")
+            exit(1)
+        EOF
+        
+    - name: 📝 Log email sent
+      run: |
+        echo "✅ Email di accesso inviata con successo"
+        echo "📬 Destinatario: ${{ github.event.inputs.recipient_email }}"
+        echo "🕒 Timestamp: $(date)"
+        echo "🔗 Link: ${{ github.event.inputs.access_link }}"

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 DMS Security - Generatore Token</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            background: white;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+        
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            border-left: 4px solid #00d2d3;
+            display: none;
+        }
+        
+        .result h3 {
+            margin-bottom: 15px;
+            color: #00d2d3;
+        }
+        
+        .token-display {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        
+        .copy-btn {
+            background: #00d2d3;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            width: auto;
+            margin: 5px;
+        }
+        
+        .copy-btn:hover {
+            background: #00a8a9;
+        }
+        
+        .info {
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid rgba(255, 193, 7, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Generatore Token DMS</h1>
+        
+        <div class="info">
+            <strong>ℹ️ Informazioni:</strong><br>
+            Questo strumento genera token JWT per l'accesso sicuro al sistema DMS. 
+            Il token include informazioni di identificazione e scadenza.
+        </div>
+        
+        <form id="tokenForm">
+            <div class="form-group">
+                <label for="email">📧 Email Destinatario:</label>
+                <input type="email" id="email" required placeholder="utente@example.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="subject">👤 Subject (Identificativo):</label>
+                <input type="text" id="subject" required placeholder="user123" value="dms_user">
+            </div>
+            
+            <div class="form-group">
+                <label for="duration">⏰ Durata Sessione:</label>
+                <select id="duration" required>
+                    <option value="3600">1 ora (3600 secondi)</option>
+                    <option value="7200">2 ore (7200 secondi)</option>
+                    <option value="21600">6 ore (21600 secondi)</option>
+                    <option value="86400">24 ore (86400 secondi)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="baseUrl">🌐 URL Base del Sistema:</label>
+                <input type="url" id="baseUrl" required placeholder="https://chcndr.github.io/dms-sicurezza-mail-test" 
+                       value="https://chcndr.github.io/dms-sicurezza-mail-test">
+            </div>
+            
+            <button type="submit">🚀 Genera Token e Link</button>
+        </form>
+        
+        <div id="result" class="result">
+            <h3>✅ Token Generato con Successo</h3>
+            
+            <div>
+                <strong>🔑 Token JWT:</strong>
+                <div id="tokenDisplay" class="token-display"></div>
+                <button class="copy-btn" onclick="copyToClipboard('tokenDisplay')">📋 Copia Token</button>
+            </div>
+            
+            <div>
+                <strong>🔗 Link di Accesso:</strong>
+                <div id="linkDisplay" class="token-display"></div>
+                <button class="copy-btn" onclick="copyToClipboard('linkDisplay')">📋 Copia Link</button>
+                <button class="copy-btn" onclick="openLink()">🌐 Apri Link</button>
+            </div>
+            
+            <div>
+                <strong>📧 Email per Invio:</strong>
+                <div id="emailDisplay" class="token-display"></div>
+            </div>
+            
+            <div>
+                <strong>⏰ Scadenza:</strong>
+                <div id="expiryDisplay" class="token-display"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chiave segreta per firmare i JWT (in produzione dovrebbe essere più sicura)
+        const JWT_SECRET = 'dms_security_key_2024_v1';
+        
+        // Funzione per codificare in Base64URL
+        function base64UrlEncode(str) {
+            return btoa(str)
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=/g, '');
+        }
+        
+        // Funzione per creare un JWT
+        function createJWT(payload) {
+            const header = {
+                alg: 'HS256',
+                typ: 'JWT'
+            };
+            
+            const encodedHeader = base64UrlEncode(JSON.stringify(header));
+            const encodedPayload = base64UrlEncode(JSON.stringify(payload));
+            
+            // Simulazione della firma (in produzione usare una libreria crypto appropriata)
+            const signature = base64UrlEncode(btoa(encodedHeader + '.' + encodedPayload + '.' + JWT_SECRET));
+            
+            return `${encodedHeader}.${encodedPayload}.${signature}`;
+        }
+        
+        // Funzione per generare un ID univoco
+        function generateJTI() {
+            return 'jti_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+        
+        // Gestione del form
+        document.getElementById('tokenForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const subject = document.getElementById('subject').value;
+            const duration = parseInt(document.getElementById('duration').value);
+            const baseUrl = document.getElementById('baseUrl').value;
+            
+            // Calcola timestamp di scadenza
+            const now = Math.floor(Date.now() / 1000);
+            const exp = now + duration;
+            
+            // Crea il payload JWT
+            const payload = {
+                sub: subject,
+                email: email,
+                iat: now,
+                exp: exp,
+                jti: generateJTI(),
+                iss: 'dms-security-system'
+            };
+            
+            // Genera il token
+            const token = createJWT(payload);
+            
+            // Crea il link di accesso
+            const accessLink = `${baseUrl}/landing/viewer/?t=${token}`;
+            
+            // Mostra i risultati
+            document.getElementById('tokenDisplay').textContent = token;
+            document.getElementById('linkDisplay').textContent = accessLink;
+            document.getElementById('emailDisplay').textContent = email;
+            document.getElementById('expiryDisplay').textContent = new Date(exp * 1000).toLocaleString('it-IT');
+            
+            // Salva il link per la funzione openLink
+            window.currentAccessLink = accessLink;
+            
+            // Mostra la sezione risultati
+            document.getElementById('result').style.display = 'block';
+            
+            // Scroll verso i risultati
+            document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
+        });
+        
+        // Funzione per copiare negli appunti
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                // Feedback visivo
+                const originalBg = element.style.background;
+                element.style.background = 'rgba(0, 210, 211, 0.3)';
+                setTimeout(() => {
+                    element.style.background = originalBg;
+                }, 500);
+                
+                alert('✅ Copiato negli appunti!');
+            }).catch(function(err) {
+                console.error('Errore nella copia: ', err);
+                alert('❌ Errore nella copia. Seleziona manualmente il testo.');
+            });
+        }
+        
+        // Funzione per aprire il link
+        function openLink() {
+            if (window.currentAccessLink) {
+                window.open(window.currentAccessLink, '_blank');
+            }
+        }
+        
+        // Precompila l'email se presente nei parametri URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const emailParam = urlParams.get('email');
+        if (emailParam) {
+            document.getElementById('email').value = emailParam;
+        }
+    </script>
+</body>
+</html>
