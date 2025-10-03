@@ -1,9 +1,9 @@
 name: 📬 Poll Email Replies
 
 on:
-  # schedule:
-  #   # Esegui ogni 5 minuti (DISABILITATO per debug)
-  #   - cron: '*/5 * * * *'
+  schedule:
+    # Esegui ogni 5 minuti
+    - cron: '*/5 * * * *'
   workflow_dispatch:
     inputs:
       force_check:
