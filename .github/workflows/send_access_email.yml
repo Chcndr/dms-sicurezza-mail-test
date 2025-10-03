@@ -157,10 +157,9 @@ jobs:
         msg.attach(MIMEText(html_body, 'html', 'utf-8'))
         
         try:
-            # Connessione SMTP
-            print(f"🔗 Connessione a {smtp_host}:{smtp_port}...")
-            server = smtplib.SMTP(smtp_host, smtp_port)
-            server.starttls()
+            # Connessione SMTP SSL (PostaSSL porta 465)
+            print(f"🔗 Connessione SSL a {smtp_host}:{smtp_port}...")
+            server = smtplib.SMTP_SSL(smtp_host, smtp_port)
             server.login(smtp_user, smtp_pass)
             
             # Invio email
