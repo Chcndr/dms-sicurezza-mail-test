@@ -32,7 +32,7 @@ jobs:
         
     - name: 📦 Install dependencies
       run: |
-        pip install smtplib email-mime-text email-mime-multipart
+        echo "✅ Tutti i moduli necessari sono già inclusi in Python standard library"
         
     - name: 📧 Send access email
       env:
