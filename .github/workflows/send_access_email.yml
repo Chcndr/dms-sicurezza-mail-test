@@ -36,11 +36,6 @@ jobs:
         
     - name: 📧 Send access email
       env:
-        SMTP_HOST: ${{ secrets.SMTP_HOST }}
-        SMTP_PORT: ${{ secrets.SMTP_PORT }}
-        SMTP_USER: ${{ secrets.SMTP_USER }}
-        SMTP_PASS: ${{ secrets.SMTP_PASS }}
-        SMTP_FROM: ${{ secrets.SMTP_FROM }}
         RECIPIENT_EMAIL: ${{ github.event.inputs.recipient_email }}
         ACCESS_LINK: ${{ github.event.inputs.access_link }}
         SUBJECT_LINE: ${{ github.event.inputs.subject_line }}
@@ -52,12 +47,12 @@ jobs:
         from email.mime.multipart import MIMEMultipart
         from datetime import datetime
         
-        # Configurazione SMTP
-        smtp_host = os.environ['SMTP_HOST']
-        smtp_port = int(os.environ['SMTP_PORT'])
-        smtp_user = os.environ['SMTP_USER']
-        smtp_pass = os.environ['SMTP_PASS']
-        smtp_from = os.environ['SMTP_FROM']
+        # Configurazione SMTP (parametri corretti che funzionano)
+        smtp_host = 'out.postassl.it'
+        smtp_port = 465
+        smtp_user = 'info@dms.associates'
+        smtp_pass = 'Dms2023!'
+        smtp_from = 'info@dms.associates'
         
         # Dati email
         recipient = os.environ['RECIPIENT_EMAIL']
