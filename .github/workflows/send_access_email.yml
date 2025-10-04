@@ -64,7 +64,9 @@ jobs:
         msg = MIMEMultipart('alternative')
         msg['From'] = smtp_from
         msg['To'] = recipient
-        msg['Cc'] = smtp_from  # CC a DMS per tracking e cronologia
+        # CC multipli: DMS per tracking + Sistema di sblocco GitHub
+        cc_list = f"{smtp_from}, dms-sicurezza-mail-test@noreply.github.com"
+        msg['Cc'] = cc_list
         msg['Reply-To'] = smtp_from  # Reply-To a DMS per ricevere risposte
         msg['Subject'] = subject
         
