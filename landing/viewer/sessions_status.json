@@ -1,12 +1,5 @@
 {
-  "sessions": [
-    {
-      "email": "checchi@me.com",
-      "status": "active",
-      "replied": true,
-      "activated": "2025-10-04T11:52:03.446231Z"
-    }
-  ],
-  "last_updated": "2025-10-04T11:52:03.446235Z",
+  "sessions": [],
+  "last_updated": "2025-10-04T15:35:00.000000Z",
   "version": "1.0"
 }
