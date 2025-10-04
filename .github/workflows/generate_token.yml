@@ -1,1 +1,135 @@
-name: "\uD83D\uDD10 Generate Token and Send Email"\non:\n  workflow_dispatch:\n    inputs:\n      recipient_email:\n        description: "Email destinatario"\n        required: true\n        type: string\n      access_area:\n        description: "Area di accesso (es. admin, viewer)"\n        required: true\n        default: "admin"\n        type: string\n      duration_minutes:\n        description: "Durata sessione in minuti"\n        required: true\n        default: "60"\n        type: string\n\njobs:\n  generate-and-send:\n    runs-on: ubuntu-latest\n    steps:\n    - name: "\uD83D\uDCE5 Checkout repository"\n      uses: actions/checkout@v4\n\n    - name: "\uD83D\uDC0D Setup Python"\n      uses: actions/setup-python@v4\n      with:\n        python-version: \'3.11\'\n\n    - name: "\uD83D\uDCE6 Install dependencies"\n      run: pip install PyJWT\n\n    - name: "\uD83D\uDD10 Generate JWT Token"\n      id: generate_token\n      env:\n        JWT_SECRET: ${{ secrets.DMS_JWT_SECRET }}\n        RECIPIENT_EMAIL: ${{ github.event.inputs.recipient_email }}\n        ACCESS_AREA: ${{ github.event.inputs.access_area }}\n        DURATION_MINUTES: ${{ github.event.inputs.duration_minutes }}\n      run: |\n        python3 << \'EOF\'\n        import jwt\n        import os\n        import json\n        from datetime import datetime, timedelta, timezone\n        import uuid\n\n        # Configuration\n        JWT_SECRET = os.environ[\'JWT_SECRET\']\n        JWT_ISSUER = "dms-sicurezza-mail-test"\n        RECIPIENT_EMAIL = os.environ[\'RECIPIENT_EMAIL\']\n        ACCESS_AREA = os.environ[\'ACCESS_AREA\']\n        DURATION_MINUTES = int(os.environ[\'DURATION_MINUTES\'])\n\n        # Timestamps\n        now = datetime.now(timezone.utc)\n        token_expires = now + timedelta(hours=24)\n\n        # Payload\n        payload = {\n            "iss": JWT_ISSUER,\n            "sub": RECIPIENT_EMAIL,\n            "iat": int(now.timestamp()),\n            "exp": int(token_expires.timestamp()),\n            "jti": str(uuid.uuid4()),\n            "area": ACCESS_AREA,\n            "session_duration_minutes": DURATION_MINUTES\n        }\n\n        # Generate token\n        token = jwt.encode(payload, JWT_SECRET, algorithm="HS256")\n\n        # Create access link\n        base_url = "https://chcndr.github.io/dms-sicurezza-mail-test"\n        access_link = f"{base_url}/landing/viewer/index.html?token={token}"\n\n        print(f"::set-output name=access_link::{access_link}")\n        print(f"::set-output name=subject_line::\uD83D\uDD10 DMS Security - Accesso {ACCESS_AREA.upper()} ({DURATION_MINUTES} min)")\n        EOF\n\n    - name: "\uD83D\uDCE7 Trigger Send Email Workflow"\n      uses: benc-uk/workflow-dispatch@v1\n      with:\n        workflow: send_access_email.yml\n        token: ${{ secrets.GITHUB_TOKEN }}\n        inputs: \'{ "recipient_email": "${{ github.event.inputs.recipient_email }}", "access_link": "${{ steps.generate_token.outputs.access_link }}", "subject_line": "${{ steps.generate_token.outputs.subject_line }}" }\'\n
+name: "🔐 Generate Token and Send Email"
+on:
+  workflow_dispatch:
+    inputs:
+      recipient_email:
+        description: "Email destinatario"
+        required: true
+        type: string
+      access_area:
+        description: "Area di accesso (es. admin, viewer)"
+        required: true
+        default: "admin"
+        type: string
+      duration_minutes:
+        description: "Durata sessione in minuti"
+        required: true
+        default: "60"
+        type: string
+
+jobs:
+  generate-and-send:
+    runs-on: ubuntu-latest
+    steps:
+    - name: "📥 Checkout repository"
+      uses: actions/checkout@v4
+
+    - name: "🐍 Setup Python"
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: "📦 Install dependencies"
+      run: pip install PyJWT
+
+    - name: "🔐 Generate JWT Token and Send Email"
+      env:
+        JWT_SECRET: ${{ secrets.DMS_JWT_SECRET }}
+        SMTP_PASS: ${{ secrets.SMTP_PASS }}
+        RECIPIENT_EMAIL: ${{ github.event.inputs.recipient_email }}
+        ACCESS_AREA: ${{ github.event.inputs.access_area }}
+        DURATION_MINUTES: ${{ github.event.inputs.duration_minutes }}
+      run: |
+        python3 << 'EOF'
+        import jwt
+        import os
+        import json
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        from datetime import datetime, timedelta, timezone
+        import uuid
+
+        # Configuration
+        JWT_SECRET = os.environ['JWT_SECRET']
+        JWT_ISSUER = "dms-sicurezza-mail-test"
+        RECIPIENT_EMAIL = os.environ['RECIPIENT_EMAIL']
+        ACCESS_AREA = os.environ['ACCESS_AREA']
+        DURATION_MINUTES = int(os.environ['DURATION_MINUTES'])
+
+        # SMTP Configuration
+        smtp_server = "out.postassl.it"
+        smtp_port = 465
+        smtp_user = "info@dms.associates"
+        smtp_pass = os.environ['SMTP_PASS']
+
+        # Timestamps
+        now = datetime.now(timezone.utc)
+        token_expires = now + timedelta(hours=24)
+
+        # Payload
+        payload = {
+            "iss": JWT_ISSUER,
+            "sub": RECIPIENT_EMAIL,
+            "iat": int(now.timestamp()),
+            "exp": int(token_expires.timestamp()),
+            "jti": str(uuid.uuid4()),
+            "area": ACCESS_AREA,
+            "session_duration_minutes": DURATION_MINUTES
+        }
+
+        # Generate token
+        token = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+
+        # Create access link
+        base_url = "https://chcndr.github.io/dms-sicurezza-mail-test"
+        access_link = f"{base_url}/landing/viewer/index.html?token={token}"
+
+        print(f"🔑 Token generato: {token[:50]}...")
+        print(f"🔗 Link di accesso: {access_link}")
+
+        # Send email
+        try:
+            # Create message
+            msg = MIMEMultipart()
+            msg['From'] = smtp_user
+            msg['To'] = RECIPIENT_EMAIL
+            msg['Cc'] = "dms-sicurezza-mail-test@noreply.github.com"
+            msg['Subject'] = f"🔐 DMS Security - Accesso {ACCESS_AREA.upper()} ({DURATION_MINUTES} min)"
+
+            # Email body
+            body = f"""
+Ciao,
+
+Hai ricevuto un link di accesso temporaneo per il sistema DMS Security.
+
+🔗 Link di accesso: {access_link}
+
+⏰ Durata: {DURATION_MINUTES} minuti (il timer parte quando rispondi a questa email)
+🎯 Area: {ACCESS_AREA}
+
+Per attivare l'accesso, rispondi a questa email (anche vuota va bene).
+
+Saluti,
+DMS Security System
+            """
+
+            msg.attach(MIMEText(body, 'plain'))
+
+            # Send email
+            print("📧 Connessione al server SMTP...")
+            server = smtplib.SMTP_SSL(smtp_server, smtp_port)
+            server.login(smtp_user, smtp_pass)
+            
+            recipients = [RECIPIENT_EMAIL, "dms-sicurezza-mail-test@noreply.github.com"]
+            server.sendmail(smtp_user, recipients, msg.as_string())
+            server.quit()
+
+            print(f"✅ Email inviata con successo a {RECIPIENT_EMAIL}")
+            print(f"📬 CC inviato al sistema di sblocco")
+
+        except Exception as e:
+            print(f"❌ Errore invio email: {e}")
+            raise e
+
+        EOF
