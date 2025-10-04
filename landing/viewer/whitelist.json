@@ -2,23 +2,23 @@
   "entries": [
     {
       "email": "checchi@me.com",
-      "jti": "reply_1759560612_217",
-      "added": "2025-10-04T06:50:12.922035Z",
-      "expires": 1759562412,
+      "jti": "reply_1759561185_1732",
+      "added": "2025-10-04T06:59:45.050023Z",
+      "expires": 1759562985,
       "source": "email_reply",
       "status": "active",
       "area": "admin"
     },
     {
       "email": "info@dms.associates",
-      "jti": "reply_1759560613_8713",
-      "added": "2025-10-04T06:50:13.217216Z",
-      "expires": 1759562413,
+      "jti": "reply_1759561185_4732",
+      "added": "2025-10-04T06:59:45.341672Z",
+      "expires": 1759562985,
       "source": "email_reply",
       "status": "active",
       "area": "admin"
     }
   ],
-  "last_updated": "2025-10-04T06:50:13.217243Z",
+  "last_updated": "2025-10-04T06:59:45.341698Z",
   "version": "1.0"
 }
