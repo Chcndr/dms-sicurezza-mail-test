@@ -1,5 +1,22 @@
 {
-  "entries": [],
-  "last_updated": null,
+  "entries": [
+    {
+      "email": "checchi@me.com",
+      "jti": "reply_1759548665_9028",
+      "added": "2025-10-04T03:31:05.447621Z",
+      "expires": 1759552265,
+      "source": "email_reply",
+      "status": "active"
+    },
+    {
+      "email": "info@dms.associates",
+      "jti": "reply_1759548665_3086",
+      "added": "2025-10-04T03:31:05.779819Z",
+      "expires": 1759552265,
+      "source": "email_reply",
+      "status": "active"
+    }
+  ],
+  "last_updated": "2025-10-04T03:31:05.779844Z",
   "version": "1.0"
 }
