@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 DMS Test Page - Verifica Sistema</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 600px;
+            width: 90%;
+        }
+        
+        .title {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+        
+        .status-box {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .status-title {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            color: #FFD700;
+        }
+        
+        .token-info {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            text-align: left;
+        }
+        
+        .success {
+            color: #00FF88;
+            font-weight: bold;
+        }
+        
+        .error {
+            color: #FF6B6B;
+            font-weight: bold;
+        }
+        
+        .warning {
+            color: #FFD93D;
+            font-weight: bold;
+        }
+        
+        .button {
+            background: linear-gradient(45deg, #00d2d3, #00a8a9);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 210, 211, 0.3);
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 210, 211, 0.4);
+        }
+        
+        .debug-info {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8em;
+            text-align: left;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .timestamp {
+            color: #B0B0B0;
+            font-size: 0.9em;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">🧪 DMS Test Page</div>
+        <div class="subtitle">Pagina di Test per Verifica Sistema Email Security</div>
+        
+        <div class="status-box">
+            <div class="status-title">📊 Status Sistema</div>
+            <div id="systemStatus">🔄 Verificando sistema...</div>
+        </div>
+        
+        <div class="status-box">
+            <div class="status-title">🔑 Informazioni Token</div>
+            <div class="token-info" id="tokenInfo">
+                Nessun token rilevato nell'URL
+            </div>
+        </div>
+        
+        <div class="status-box">
+            <div class="status-title">📋 Whitelist Status</div>
+            <div id="whitelistStatus">🔄 Caricando whitelist...</div>
+        </div>
+        
+        <div class="debug-info" id="debugInfo">
+            <strong>🐛 Debug Info:</strong><br>
+            URL: <span id="currentUrl"></span><br>
+            Timestamp: <span id="currentTime"></span><br>
+            User Agent: <span id="userAgent"></span>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <a href="../viewer/index.html" class="button">🏠 Vai al Viewer</a>
+            <a href="../admin/index.html" class="button">⚙️ Vai all'Admin</a>
+        </div>
+        
+        <div class="timestamp" id="pageLoadTime"></div>
+    </div>
+
+    <script>
+        // Funzione per aggiornare il timestamp
+        function updateTimestamp() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toISOString();
+            document.getElementById('pageLoadTime').textContent = `Pagina caricata: ${now.toLocaleString('it-IT')}`;
+        }
+        
+        // Funzione per estrarre token dall'URL
+        function getTokenFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('t');
+        }
+        
+        // Funzione per verificare il token
+        function verifyToken(token) {
+            if (!token) {
+                return { valid: false, message: "Nessun token nell'URL" };
+            }
+            
+            try {
+                // Decodifica Base64URL
+                const parts = token.split('.');
+                if (parts.length !== 3) {
+                    return { valid: false, message: "Formato token non valido" };
+                }
+                
+                const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+                const now = Math.floor(Date.now() / 1000);
+                
+                return {
+                    valid: payload.exp > now,
+                    message: payload.exp > now ? "Token valido" : "Token scaduto",
+                    payload: payload,
+                    expires: new Date(payload.exp * 1000),
+                    email: payload.sub || payload.email
+                };
+            } catch (error) {
+                return { valid: false, message: `Errore decodifica: ${error.message}` };
+            }
+        }
+        
+        // Funzione per caricare la whitelist
+        async function loadWhitelist() {
+            try {
+                const response = await fetch('../viewer/whitelist.json');
+                const whitelist = await response.json();
+                return whitelist;
+            } catch (error) {
+                return { error: error.message };
+            }
+        }
+        
+        // Funzione per verificare se l'email è nella whitelist
+        function checkWhitelist(email, whitelist) {
+            if (!whitelist.entries) {
+                return { found: false, message: "Whitelist vuota o non valida" };
+            }
+            
+            const entry = whitelist.entries.find(e => e.email === email);
+            if (!entry) {
+                return { found: false, message: "Email non trovata nella whitelist" };
+            }
+            
+            const now = Math.floor(Date.now() / 1000);
+            const isActive = entry.expires > now;
+            
+            return {
+                found: true,
+                active: isActive,
+                message: isActive ? "Email attiva nella whitelist" : "Entry scaduta nella whitelist",
+                entry: entry,
+                expires: new Date(entry.expires * 1000)
+            };
+        }
+        
+        // Inizializzazione pagina
+        async function initPage() {
+            // Aggiorna info di base
+            updateTimestamp();
+            document.getElementById('currentUrl').textContent = window.location.href;
+            document.getElementById('userAgent').textContent = navigator.userAgent.substring(0, 80) + '...';
+            
+            // Verifica token
+            const token = getTokenFromUrl();
+            const tokenResult = verifyToken(token);
+            
+            let tokenHtml = '';
+            if (tokenResult.valid) {
+                tokenHtml = `
+                    <span class="success">✅ ${tokenResult.message}</span><br>
+                    Email: ${tokenResult.email}<br>
+                    Scadenza: ${tokenResult.expires.toLocaleString('it-IT')}<br>
+                    JTI: ${tokenResult.payload.jti || 'N/A'}
+                `;
+            } else {
+                tokenHtml = `<span class="error">❌ ${tokenResult.message}</span>`;
+            }
+            document.getElementById('tokenInfo').innerHTML = tokenHtml;
+            
+            // Carica whitelist
+            const whitelist = await loadWhitelist();
+            let whitelistHtml = '';
+            
+            if (whitelist.error) {
+                whitelistHtml = `<span class="error">❌ Errore caricamento: ${whitelist.error}</span>`;
+            } else if (tokenResult.valid && tokenResult.email) {
+                const whitelistResult = checkWhitelist(tokenResult.email, whitelist);
+                if (whitelistResult.found) {
+                    if (whitelistResult.active) {
+                        whitelistHtml = `
+                            <span class="success">✅ ${whitelistResult.message}</span><br>
+                            Scadenza whitelist: ${whitelistResult.expires.toLocaleString('it-IT')}<br>
+                            Status: ${whitelistResult.entry.status}
+                        `;
+                    } else {
+                        whitelistHtml = `
+                            <span class="warning">⚠️ ${whitelistResult.message}</span><br>
+                            Scaduta il: ${whitelistResult.expires.toLocaleString('it-IT')}
+                        `;
+                    }
+                } else {
+                    whitelistHtml = `<span class="error">❌ ${whitelistResult.message}</span>`;
+                }
+            } else {
+                whitelistHtml = `<span class="warning">⚠️ Nessun token valido per verificare whitelist</span>`;
+            }
+            document.getElementById('whitelistStatus').innerHTML = whitelistHtml;
+            
+            // Status generale del sistema
+            let systemHtml = '';
+            if (tokenResult.valid && whitelist.entries) {
+                const whitelistCheck = checkWhitelist(tokenResult.email, whitelist);
+                if (whitelistCheck.found && whitelistCheck.active) {
+                    systemHtml = `<span class="success">🟢 SISTEMA FUNZIONANTE - Accesso autorizzato</span>`;
+                } else {
+                    systemHtml = `<span class="warning">🟡 Token valido ma non in whitelist attiva</span>`;
+                }
+            } else if (tokenResult.valid) {
+                systemHtml = `<span class="warning">🟡 Token valido, whitelist non verificabile</span>`;
+            } else {
+                systemHtml = `<span class="error">🔴 Nessun token valido</span>`;
+            }
+            document.getElementById('systemStatus').innerHTML = systemHtml;
+        }
+        
+        // Avvia inizializzazione
+        initPage();
+        
+        // Aggiorna timestamp ogni secondo
+        setInterval(updateTimestamp, 1000);
+    </script>
+</body>
+</html>
