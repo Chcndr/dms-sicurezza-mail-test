@@ -70,6 +70,54 @@ jobs:
                 return True
             return False
         
+        def extract_duration_from_subject(subject):
+            """Estrae la durata in minuti dall'oggetto email"""
+            import base64
+            
+            # Cerca pattern come "(30 min)" nell'oggetto
+            duration_match = re.search(r'\((\d+)\s*min\)', subject, re.IGNORECASE)
+            if duration_match:
+                return int(duration_match.group(1))
+            
+            # Fallback: cerca token JWT nell'oggetto e decodificalo
+            # Pattern: 🔐 DMS Security - Accesso ADMIN (30 min)
+            # Oppure cerca direttamente i minuti
+            if '30 min' in subject.lower():
+                return 30
+            elif '60 min' in subject.lower():
+                return 60
+            elif '120 min' in subject.lower() or '2 ore' in subject.lower():
+                return 120
+            elif '360 min' in subject.lower() or '6 ore' in subject.lower():
+                return 360
+            elif '1440 min' in subject.lower() or '24 ore' in subject.lower():
+                return 1440
+            
+            # Default: 60 minuti se non trovato
+            print(f"⚠️ Durata non trovata nell'oggetto '{subject}', uso default 60 min")
+            return 60
+        
+        def extract_area_from_subject(subject):
+            """Estrae l'area di accesso dall'oggetto email"""
+            # Pattern: 🔐 DMS Security - Accesso ADMIN (30 min)
+            area_match = re.search(r'Accesso\s+(\w+)', subject, re.IGNORECASE)
+            if area_match:
+                area = area_match.group(1).lower()
+                return area
+            
+            # Fallback: cerca direttamente le aree
+            subject_lower = subject.lower()
+            if 'admin' in subject_lower:
+                return 'admin'
+            elif 'viewer' in subject_lower:
+                return 'viewer'
+            elif 'editor' in subject_lower:
+                return 'editor'
+            
+            # Default: viewer se non trovato
+            print(f"⚠️ Area non trovata nell'oggetto '{subject}', uso default 'viewer'")
+            return 'viewer'
+        
         def load_whitelist():
             """Carica la whitelist esistente"""
             try:
@@ -121,7 +169,7 @@ jobs:
             save_sessions_status(sessions_status)
             return sessions_status
         
-        def add_to_whitelist(email_addr, duration_hours=1):
+        def add_to_whitelist(email_addr, duration_hours=1, access_area='viewer'):
             """Aggiunge un'email alla whitelist"""
             whitelist = load_whitelist()
             
@@ -147,7 +195,8 @@ jobs:
                 "added": now_utc.isoformat() + "Z",
                 "expires": expires_timestamp,
                 "source": "email_reply",
-                "status": "active"
+                "status": "active",
+                "area": access_area
             }
             
             # Rimuovi eventuali entry esistenti per la stessa email
@@ -212,8 +261,16 @@ jobs:
                     if is_dms_reply:
                         print(f"✅ Rilevata risposta DMS da {sender_email}")
                         
-                        # Aggiungi alla whitelist
-                        entry = add_to_whitelist(sender_email, duration_hours=1)
+                        # Estrai durata e area dal token JWT nell'oggetto
+                        duration_minutes = extract_duration_from_subject(subject)
+                        duration_hours = duration_minutes / 60.0 if duration_minutes else 1.0
+                        access_area = extract_area_from_subject(subject)
+                        
+                        print(f"⏰ Durata estratta: {duration_minutes} minuti ({duration_hours} ore)")
+                        print(f"🎯 Area estratta: {access_area}")
+                        
+                        # Aggiungi alla whitelist con durata e area corrette
+                        entry = add_to_whitelist(sender_email, duration_hours=duration_hours, access_area=access_area)
                         
                         # Aggiorna stato sessione
                         update_session_status(sender_email, "active")
