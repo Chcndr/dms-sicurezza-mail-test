@@ -4,15 +4,15 @@
       "email": "info@dms.associates",
       "status": "active",
       "replied": true,
-      "activated": "2025-10-04T06:12:38.616359Z"
+      "activated": "2025-10-04T06:38:56.089006Z"
     },
     {
       "email": "checchi@me.com",
       "status": "active",
       "replied": true,
-      "activated": "2025-10-04T06:12:38.232934Z"
+      "activated": "2025-10-04T06:38:55.650484Z"
     }
   ],
-  "last_updated": "2025-10-04T06:12:38.616362Z",
+  "last_updated": "2025-10-04T06:38:56.089009Z",
   "version": "1.0"
 }
