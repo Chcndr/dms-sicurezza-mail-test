@@ -68,8 +68,7 @@ jobs:
         msg = MIMEMultipart('alternative')
         msg['From'] = smtp_from
         msg['To'] = recipient
-        msg['Cc'] = smtp_from  # CC al sistema per ricevere risposte
-        msg['Reply-To'] = smtp_from  # Reply-To per le risposte
+        msg['Reply-To'] = recipient  # Reply-To al destinatario per risposte corrette
         msg['Subject'] = subject
         
         # Template HTML
