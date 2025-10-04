@@ -1,24 +1,5 @@
 {
-  "sessions": [
-    {
-      "email": "bebaviola@gmail.com",
-      "status": "active",
-      "replied": true,
-      "activated": "2025-10-03T23:54:39.448041"
-    },
-    {
-      "email": "checchi@me.com",
-      "status": "active",
-      "replied": true,
-      "activated": "2025-10-03T23:54:40.862132"
-    },
-    {
-      "email": "info@dms.associates",
-      "status": "active",
-      "replied": true,
-      "activated": "2025-10-04T01:08:11.820332"
-    }
-  ],
-  "last_updated": "2025-10-04T01:08:11.820336",
+  "sessions": [],
+  "last_updated": null,
   "version": "1.0"
 }
