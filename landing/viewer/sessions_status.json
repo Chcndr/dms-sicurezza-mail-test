@@ -1,5 +1,18 @@
 {
-  "sessions": [],
-  "last_updated": null,
+  "sessions": [
+    {
+      "email": "info@dms.associates",
+      "status": "active",
+      "replied": true,
+      "activated": "2025-10-04T02:20:59.578648Z"
+    },
+    {
+      "email": "checchi@me.com",
+      "status": "active",
+      "replied": true,
+      "activated": "2025-10-04T02:20:59.092164Z"
+    }
+  ],
+  "last_updated": "2025-10-04T02:20:59.578651Z",
   "version": "1.0"
 }
