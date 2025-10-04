@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 DMS Security - Pannello Admin</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); max-width: 500px; width: 100%; }
+        h1 { text-align: center; color: #333; margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #555; }
+        input, select, button { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; transition: background 0.3s; }
+        button:hover { background: #0056b3; }
+        .status { margin-top: 20px; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; display: none; }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Pannello Admin</h1>
+        <form id="dispatchForm">
+            <div class="form-group">
+                <label for="github_token">🔑 Token GitHub:</label>
+                <input type="password" id="github_token" required placeholder="ghp_... o fine-grained token">
+            </div>
+            <div class="form-group">
+                <label for="recipient_email">📧 Email Destinatario:</label>
+                <input type="email" id="recipient_email" required placeholder="utente@example.com">
+            </div>
+            <div class="form-group">
+                <label for="access_area">📂 Area di Accesso:</label>
+                <select id="access_area" required>
+                    <option value="admin">Admin</option>
+                    <option value="viewer" selected>Viewer</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="duration_minutes">⏰ Durata (minuti):</label>
+                <input type="number" id="duration_minutes" required value="60">
+            </div>
+            <button type="submit">🚀 Invia Email di Accesso</button>
+        </form>
+        <div id="status" class="status"></div>
+    </div>
+
+    <script>
+        document.getElementById('dispatchForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const githubToken = document.getElementById('github_token').value;
+            const recipientEmail = document.getElementById('recipient_email').value;
+            const accessArea = document.getElementById('access_area').value;
+            const durationMinutes = document.getElementById('duration_minutes').value;
+            const statusDiv = document.getElementById('status');
+
+            const repo = 'Chcndr/dms-sicurezza-mail-test';
+            const workflow = 'generate_token.yml';
+            const url = `https://api.github.com/repos/${repo}/actions/workflows/${workflow}/dispatches`;
+
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status';
+            statusDiv.textContent = '🚀 In esecuzione...';
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `token ${githubToken}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        ref: 'main',
+                        inputs: {
+                            recipient_email: recipientEmail,
+                            access_area: accessArea,
+                            duration_minutes: durationMinutes
+                        }
+                    }),
+                });
+
+                if (response.status === 204) {
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = '✅ Workflow avviato con successo! L\'email sarà inviata a breve.';
+                } else {
+                    const errorData = await response.json();
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `❌ Errore: ${errorData.message || 'Impossibile avviare il workflow.'}`;
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `❌ Errore di rete: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>
