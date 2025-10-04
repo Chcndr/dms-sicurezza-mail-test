@@ -467,19 +467,12 @@
             caricaSessioniBtn: document.getElementById('caricaSessioniBtn'),
             errorMessage: document.getElementById('errorMessage'),
             successMessage: document.getElementById('successMessage'),
-            sessionsContainer: document.getElementById('sessionsContainer'),
-            // Login Admin
-            githubToken: document.getElementById('githubToken'),
-            loginBtn: document.getElementById('loginBtn'),
-            logoutBtn: document.getElementById('logoutBtn'),
-            loginSection: document.getElementById('loginSection'),
-            loggedSection: document.getElementById('loggedSection')
+            sessionsContainer: document.getElementById('sessionsContainer')
         };
 
         // Inizializzazione sistema
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🔐 DMS Email Security System inizializzato');
-            checkAdminLogin();
             checkSystemStatus();
             setupEventListeners();
             
@@ -498,8 +491,6 @@
         function setupEventListeners() {
             elements.generaTokenBtn.addEventListener('click', generaTokenEInviaEmail);
             elements.caricaSessioniBtn.addEventListener('click', caricaSessioniAttive);
-            elements.loginBtn.addEventListener('click', adminLogin);
-            elements.logoutBtn.addEventListener('click', adminLogout);
         }
 
         // Verifica status sistema
@@ -807,78 +798,7 @@ Il workflow invierà l'email utilizzando il server SMTP configurato (info@dms.as
 
         // === FUNZIONI LOGIN ADMIN ===
 
-        // Verifica se admin è già loggato
-        function checkAdminLogin() {
-            const githubToken = localStorage.getItem('dms_github_token');
-            
-            if (githubToken) {
-                console.log('✅ Admin già loggato');
-                elements.loginSection.classList.add('hidden');
-                elements.loggedSection.classList.remove('hidden');
-            } else {
-                console.log('⚠️ Admin non loggato');
-                elements.loginSection.classList.remove('hidden');
-                elements.loggedSection.classList.add('hidden');
-            }
-        }
-
-        // Login admin
-        async function adminLogin() {
-            const token = elements.githubToken.value.trim();
-            
-            if (!token || !token.startsWith('ghp_')) {
-                showError('Inserisci un token GitHub valido (inizia con ghp_)');
-                return;
-            }
-
-            try {
-                elements.loginBtn.disabled = true;
-                elements.loginBtn.innerHTML = '<div class="loading"></div> Verificando token...';
-                
-                // Testa il token con una chiamata API
-                const response = await fetch('https://api.github.com/repos/Chcndr/dms-sicurezza-mail-test', {
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
-                });
-
-                if (response.ok) {
-                    // Token valido, salvalo
-                    localStorage.setItem('dms_github_token', token);
-                    
-                    console.log('✅ Login admin completato');
-                    showSuccess('✅ Login admin completato! Automazione email attivata.');
-                    
-                    // Aggiorna UI
-                    elements.loginSection.classList.add('hidden');
-                    elements.loggedSection.classList.remove('hidden');
-                    elements.githubToken.value = '';
-                    
-                } else {
-                    throw new Error('Token non valido o senza permessi');
-                }
-
-            } catch (error) {
-                console.error('❌ Errore login:', error);
-                showError('Token non valido. Verifica che abbia i permessi per il repository.');
-            } finally {
-                elements.loginBtn.disabled = false;
-                elements.loginBtn.innerHTML = '🚀 SALVA TOKEN E ATTIVA AUTOMAZIONE';
-            }
-        }
-
-        // Logout admin
-        function adminLogout() {
-            localStorage.removeItem('dms_github_token');
-            
-            console.log('🚪 Logout admin completato');
-            showSuccess('Logout completato. Automazione email disattivata.');
-            
-            // Aggiorna UI
-            elements.loginSection.classList.remove('hidden');
-            elements.loggedSection.classList.add('hidden');
-        }
+        // Sistema semplificato senza login admin - usa direttamente GitHub Issues
     </script>
 </body>
 </html>
