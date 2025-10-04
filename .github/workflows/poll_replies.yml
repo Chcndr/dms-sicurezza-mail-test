@@ -80,7 +80,7 @@ jobs:
         
         def save_whitelist(whitelist):
             """Salva la whitelist aggiornata"""
-            whitelist['last_updated'] = datetime.now().isoformat()
+            whitelist['last_updated'] = datetime.utcnow().isoformat() + "Z"
             with open('landing/viewer/whitelist.json', 'w') as f:
                 json.dump(whitelist, f, indent=2)
         
@@ -94,7 +94,7 @@ jobs:
         
         def save_sessions_status(sessions_status):
             """Salva lo stato delle sessioni aggiornato"""
-            sessions_status['last_updated'] = datetime.now().isoformat()
+            sessions_status['last_updated'] = datetime.utcnow().isoformat() + "Z"
             with open('landing/viewer/sessions_status.json', 'w') as f:
                 json.dump(sessions_status, f, indent=2)
         
@@ -107,7 +107,7 @@ jobs:
                 if session.get('email') == email_addr:
                     session['status'] = status
                     session['replied'] = True
-                    session['activated'] = datetime.now().isoformat()
+                    session['activated'] = datetime.utcnow().isoformat() + "Z"
                     break
             else:
                 # Se non trovata, crea nuova entry
@@ -115,7 +115,7 @@ jobs:
                     "email": email_addr,
                     "status": status,
                     "replied": True,
-                    "activated": datetime.now().isoformat()
+                    "activated": datetime.utcnow().isoformat() + "Z"
                 })
             
             save_sessions_status(sessions_status)
@@ -125,18 +125,27 @@ jobs:
             """Aggiunge un'email alla whitelist"""
             whitelist = load_whitelist()
             
-            # Calcola scadenza
-            expires = datetime.now() + timedelta(hours=duration_hours)
+            # Calcola scadenza usando UTC per evitare problemi di fuso orario
+            now_utc = datetime.utcnow()
+            expires_utc = now_utc + timedelta(hours=duration_hours)
+            
+            # Debug timestamp
+            now_timestamp = int(now_utc.timestamp())
+            expires_timestamp = int(expires_utc.timestamp())
+            print(f"🕒 Debug timestamp:")
+            print(f"   Ora UTC: {now_utc} -> {now_timestamp}")
+            print(f"   Scadenza UTC (+{duration_hours}h): {expires_utc} -> {expires_timestamp}")
+            print(f"   Differenza: {expires_timestamp - now_timestamp} secondi")
             
             # Genera JTI univoco
-            jti = f"reply_{int(datetime.now().timestamp())}_{hash(email_addr) % 10000}"
+            jti = f"reply_{now_timestamp}_{hash(email_addr) % 10000}"
             
             # Crea entry
             entry = {
                 "email": email_addr,
                 "jti": jti,
-                "added": datetime.now().isoformat(),
-                "expires": int(expires.timestamp()),
+                "added": now_utc.isoformat() + "Z",
+                "expires": expires_timestamp,
                 "source": "email_reply",
                 "status": "active"
             }
