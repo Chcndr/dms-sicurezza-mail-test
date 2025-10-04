@@ -39,6 +39,7 @@ jobs:
         RECIPIENT_EMAIL: ${{ github.event.inputs.recipient_email }}
         ACCESS_LINK: ${{ github.event.inputs.access_link }}
         SUBJECT_LINE: ${{ github.event.inputs.subject_line }}
+        IMAP_PASS: ${{ secrets.IMAP_PASS }}
       run: |
         python3 << 'EOF'
         import smtplib
@@ -51,7 +52,7 @@ jobs:
         smtp_host = 'out.postassl.it'
         smtp_port = 465
         smtp_user = 'info@dms.associates'
-        smtp_pass = 'Dms2023!'
+        smtp_pass = os.environ.get('IMAP_PASS', 'Dms2023!')
         smtp_from = 'info@dms.associates'
         
         # Dati email
@@ -97,7 +98,7 @@ jobs:
                     
                     <ol>
                         <li><strong>Clicca sul link di accesso</strong> qui sotto</li>
-                        <li><strong>Rispondi a TUTTI</strong> con qualsiasi messaggio (anche solo "ok")</li>
+                        <li><strong>Rispondi all'email</strong> con qualsiasi messaggio (anche solo "ok")</li>
                         <li><strong>Attendi l'attivazione</strong> - il sistema processerà la tua risposta automaticamente</li>
                     </ol>
                     
@@ -108,7 +109,7 @@ jobs:
                     <div class="warning">
                         <strong>⚠️ Importante:</strong><br>
                         • Il link è valido per un tempo limitato<br>
-                        • Devi rispondere a TUTTI per attivare l'accesso<br>
+                        • Devi rispondere all'email per attivare l'accesso<br>
                         • Non condividere questo link con altri
                     </div>
                     
@@ -137,12 +138,12 @@ jobs:
         
         Per attivare la tua sessione:
         1. Clicca sul link: {access_link}
-        2. Rispondi a TUTTI con qualsiasi messaggio
+        2. Rispondi all'email con qualsiasi messaggio
         3. Attendi l'attivazione automatica
         
         ⚠️ IMPORTANTE:
         - Il link è valido per un tempo limitato
-        - Devi rispondere a TUTTI per attivare l'accesso
+        - Devi rispondere all'email per attivare l'accesso
         - Non condividere questo link con altri
         
         📧 Email inviata automaticamente dal sistema DMS Security
