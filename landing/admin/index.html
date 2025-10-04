@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0b1220 0%, #14b8a6 100%);
+            background: #0a1a1a;
             color: #ffffff;
             min-height: 100vh;
             padding: 20px;
@@ -36,12 +36,11 @@
         }
 
         .section {
-            background: rgba(11, 18, 32, 0.3);
+            background: #0b1220;
             border: 2px solid #14b8a6;
             border-radius: 15px;
             padding: 25px;
             margin-bottom: 25px;
-            backdrop-filter: blur(10px);
         }
 
         .section h2 {
@@ -61,7 +60,7 @@
         }
 
         .config-item {
-            background: rgba(11, 18, 32, 0.4);
+            background: #0a1a1a;
             padding: 15px;
             border-radius: 10px;
             border: 1px solid rgba(20, 184, 166, 0.3);
@@ -79,7 +78,7 @@
             padding: 12px;
             border: none;
             border-radius: 8px;
-            background: rgba(11, 18, 32, 0.6);
+            background: #0a1a1a;
             color: #ffffff;
             font-size: 14px;
             border: 1px solid rgba(20, 184, 166, 0.4);
@@ -181,7 +180,7 @@
         }
 
         .api-endpoint {
-            background: rgba(11, 18, 32, 0.5);
+            background: #0a1a1a;
             padding: 10px 15px;
             border-radius: 8px;
             font-family: 'Courier New', monospace;
@@ -191,7 +190,7 @@
         }
 
         .sessions-container {
-            background: rgba(11, 18, 32, 0.4);
+            background: #0b1220;
             border-radius: 10px;
             padding: 20px;
             margin-top: 15px;
@@ -199,7 +198,7 @@
         }
 
         .session-item {
-            background: rgba(11, 18, 32, 0.6);
+            background: #0a1a1a;
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 10px;
@@ -509,7 +508,7 @@
                 elements.systemStatus.innerHTML = '<div class="loading"></div><span>Verificando...</span>';
                 
                 // Simula verifica sistema (compatibile GitHub Pages)
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 
                 // Sistema sempre online per GitHub Pages
                 elements.systemStatus.className = 'status-indicator status-online';
