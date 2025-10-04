@@ -542,20 +542,33 @@
         // Verifica status sistema
         async function checkSystemStatus() {
             try {
+                if (!elements.systemStatus) {
+                    console.error('Elemento systemStatus non trovato');
+                    return;
+                }
+                
                 elements.systemStatus.innerHTML = '<div class="loading"></div><span>Verificando...</span>';
                 
-                // Simula verifica sistema (compatibile GitHub Pages)
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                // Attesa breve per simulare verifica
+                setTimeout(() => {
+                    try {
+                        // Sistema sempre online per GitHub Pages
+                        elements.systemStatus.className = 'status-indicator status-online';
+                        elements.systemStatus.innerHTML = '✅ Online';
+                        console.log('✅ Sistema verificato e online');
+                    } catch (error) {
+                        console.error('❌ Errore aggiornamento status:', error);
+                        elements.systemStatus.className = 'status-indicator status-offline';
+                        elements.systemStatus.innerHTML = '❌ Offline';
+                    }
+                }, 500);
                 
-                // Sistema sempre online per GitHub Pages
-                elements.systemStatus.className = 'status-indicator status-online';
-                elements.systemStatus.innerHTML = '✅ Online';
-                
-                console.log('✅ Sistema verificato e online');
             } catch (error) {
                 console.error('❌ Errore verifica sistema:', error);
-                elements.systemStatus.className = 'status-indicator status-offline';
-                elements.systemStatus.innerHTML = '❌ Offline';
+                if (elements.systemStatus) {
+                    elements.systemStatus.className = 'status-indicator status-offline';
+                    elements.systemStatus.innerHTML = '❌ Offline';
+                }
             }
         }
 
@@ -867,23 +880,32 @@ Il workflow invierà l'email utilizzando il server SMTP configurato (info@dms.as
         
         // Controlla se il token è già salvato
         function checkTokenStatus() {
-            const savedToken = localStorage.getItem('dms_github_token');
-            
-            if (savedToken) {
-                elements.tokenStatus.innerHTML = '✅ Token configurato';
-                elements.tokenStatus.className = 'status-indicator status-online';
-                elements.salvaTokenBtn.style.display = 'none';
-                elements.logoutBtn.style.display = 'inline-block';
-                elements.githubToken.value = '••••••••••••••••••••••••••••••••••••••••';
-                elements.githubToken.disabled = true;
-                console.log('✅ Token GitHub già configurato');
-            } else {
-                elements.tokenStatus.innerHTML = '❌ Token non configurato';
-                elements.tokenStatus.className = 'status-indicator status-offline';
-                elements.salvaTokenBtn.style.display = 'inline-block';
-                elements.logoutBtn.style.display = 'none';
-                elements.githubToken.disabled = false;
-                console.log('⚠️ Token GitHub non configurato');
+            try {
+                if (!elements.tokenStatus || !elements.salvaTokenBtn || !elements.logoutBtn || !elements.githubToken) {
+                    console.error('Elementi token non trovati');
+                    return;
+                }
+                
+                const savedToken = localStorage.getItem('dms_github_token');
+                
+                if (savedToken) {
+                    elements.tokenStatus.innerHTML = '✅ Token configurato';
+                    elements.tokenStatus.className = 'status-indicator status-online';
+                    elements.salvaTokenBtn.style.display = 'none';
+                    elements.logoutBtn.style.display = 'inline-block';
+                    elements.githubToken.value = '••••••••••••••••••••••••••••••••••••••••';
+                    elements.githubToken.disabled = true;
+                    console.log('✅ Token GitHub già configurato');
+                } else {
+                    elements.tokenStatus.innerHTML = '❌ Token non configurato';
+                    elements.tokenStatus.className = 'status-indicator status-offline';
+                    elements.salvaTokenBtn.style.display = 'inline-block';
+                    elements.logoutBtn.style.display = 'none';
+                    elements.githubToken.disabled = false;
+                    console.log('⚠️ Token GitHub non configurato');
+                }
+            } catch (error) {
+                console.error('❌ Errore check token status:', error);
             }
         }
 
