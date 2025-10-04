@@ -1,0 +1,20 @@
+name: SMTP Diagnostics
+on:
+  workflow_dispatch:
+    inputs:
+      host:
+        description: "SMTP host (es. smtp.postassl.it)"
+        required: true
+      test_to:
+        description: "Destinatario test (opz.)"
+        required: false
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Porte e TLS
+        run: |
+          echo "== 465 SMTPS ==" && nc -vz ${{ github.event.inputs.host }} 465 || true
+          echo "== 587 STARTTLS ==" && nc -vz ${{ github.event.inputs.host }} 587 || true
+          echo "== s_client 465 ==" && echo -en "QUIT\r\n" | openssl s_client -connect ${{ github.event.inputs.host }}:465 -crlf -showcerts -servername ${{ github.event.inputs.host }} || true
+          echo "== s_client 587 STARTTLS ==" && (echo -en "EHLO gh\r\nSTARTTLS\r\nQUIT\r\n") | openssl s_client -starttls smtp -connect ${{ github.event.inputs.host }}:587 -crlf -showcerts -servername ${{ github.event.inputs.host }} || true

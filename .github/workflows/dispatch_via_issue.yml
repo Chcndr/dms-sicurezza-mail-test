@@ -1,0 +1,83 @@
+name: DMS – Dispatch email via Issue
+on:
+  issues:
+    types: [opened]
+permissions:
+  contents: read
+  issues: write
+jobs:
+  send_email:
+    if: contains(join(fromJson('["' + join(github.event.issue.labels.*.name, '","') + '"]'), ','), 'dispatch-email')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Parse payload from Issue body
+        id: parse
+        env:
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+        run: |
+          python - <<'PY'
+          import os, json, re, sys, html
+          ev = json.load(open(os.environ['GITHUB_EVENT_PATH']))
+          body = ev['issue'].get('body') or ''
+          m = re.search(r'<!--DMS:START-->\s*```json\s*(\{.*?\})\s*```\s*<!--DMS:END-->', body, re.S)
+          if not m:
+            print('::error ::Blocco JSON non trovato (<!--DMS:START--> ... <!--DMS:END-->)'); sys.exit(1)
+          try:
+            data = json.loads(m.group(1))
+          except Exception as e:
+            print('::error ::JSON non valido:', e); sys.exit(1)
+          for k in ('to','token_link'):
+            if not data.get(k):
+              print(f'::error ::Campo mancante: {k}'); sys.exit(1)
+          # sanitize basic fields
+          out = os.environ['GITHUB_OUTPUT']
+          with open(out,'a') as f:
+            for k,v in data.items():
+              f.write(f"{k}={str(v).strip()}\n")
+          PY
+
+      - name: Send email via SMTP (465 SMTPS)
+        if: ${{ !contains(steps.parse.outputs.transport, 'starttls') }}
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server: ${{ secrets.SMTP_HOST }}
+          port: 465
+          secure: true
+          username: ${{ secrets.SMTP_USER }}
+          password: ${{ secrets.SMTP_PASS }}
+          subject: ${{ steps.parse.outputs.subject || 'DMS – Accesso' }}
+          to: ${{ steps.parse.outputs.to }}
+          from: ${{ steps.parse.outputs.from || secrets.SMTP_FROM }}
+          html_body: |
+            <p>Ciao,</p>
+            <p>ecco il tuo link di accesso: <a href="${{ steps.parse.outputs.token_link }}">${{ steps.parse.outputs.token_link }}</a></p>
+            <p>La sessione dura 60 minuti.</p>
+            ${{ steps.parse.outputs.html_extra }}
+          ignore_cert: false
+
+      - name: Send email via SMTP (587 STARTTLS)
+        if: ${{ contains(steps.parse.outputs.transport, 'starttls') }}
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server: ${{ secrets.SMTP_HOST }}
+          port: 587
+          secure: false
+          username: ${{ secrets.SMTP_USER }}
+          password: ${{ secrets.SMTP_PASS }}
+          subject: ${{ steps.parse.outputs.subject || 'DMS – Accesso' }}
+          to: ${{ steps.parse.outputs.to }}
+          from: ${{ steps.parse.outputs.from || secrets.SMTP_FROM }}
+          html_body: |
+            <p>Ciao,</p>
+            <p>ecco il tuo link di accesso: <a href="${{ steps.parse.outputs.token_link }}">${{ steps.parse.outputs.token_link }}</a></p>
+            <p>La sessione dura 60 minuti.</p>
+            ${{ steps.parse.outputs.html_extra }}
+          ignore_cert: false
+
+      - name: Comment esito
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          issue_url="${{ github.event.issue.url }}/comments"
+          body='{"body":"✅ Email inviata a **'"${{ steps.parse.outputs.to }}"'**.\n"}'
+          curl -sS -H "Authorization: token ${GH_TOKEN}" -H "Accept: application/vnd.github+json" -d "$body" "$issue_url" >/dev/null

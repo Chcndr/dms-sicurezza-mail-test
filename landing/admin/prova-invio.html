@@ -1,0 +1,22 @@
+<!doctype html><meta charset="utf-8">
+<title>DMS – Prova Invio</title>
+<script src="./dms-issue-dispatch.js"></script>
+<style>body{font:15px system-ui;margin:24px;max-width:720px}</style>
+<h1>Prova invio email (repo test)</h1>
+<p>Questa è una pagina di prova. Il pannello originale non viene modificato.</p>
+<label>Email destinatario<br><input id="to" placeholder="utente@example.com" style="width:100%"></label><br><br>
+<label>Link token<br><input id="link" placeholder="https://..." style="width:100%"></label><br><br>
+<label>Subject<br><input id="subj" value="DMS – Accesso" style="width:100%"></label><br><br>
+<label>Transport
+<select id="tx">
+  <option value="smtps" selected>SMTPS 465</option>
+  <option value="starttls">STARTTLS 587</option>
+</select></label><br><br>
+<button onclick="openDispatchIssue(
+  document.getElementById('to').value,
+  document.getElementById('link').value,
+  document.getElementById('subj').value,
+  document.getElementById('tx').value,
+  ''
+)">Apri Issue precompilata</button>
+<p>Dopo il click si apre GitHub → premi <b>Submit new issue</b> per inviare la mail.</p>
