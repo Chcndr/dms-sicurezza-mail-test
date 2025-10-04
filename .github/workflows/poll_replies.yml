@@ -199,7 +199,7 @@ jobs:
                 print("✅ Connected successfully to IMAP server")
                 
                 # Search for recent emails (last 24 hours)
-                search_criteria = 'SINCE "01-Oct-2025"'
+                                search_criteria = '(UNSEEN)'
                 result, message_ids = mail.search(None, search_criteria)
                 
                 if result != 'OK':
@@ -258,7 +258,8 @@ jobs:
                             if add_to_whitelist(sender_email, duration_minutes, area, jti):
                                 if update_session_status(sender_email, duration_minutes, area, jti):
                                     print(f"✅ Successfully processed reply from {sender_email}")
-                                    replies_processed += 1
+                                                                        replies_processed += 1
+                                    mail.store(msg_id, '+FLAGS', '\\Seen')
                                 else:
                                     print(f"⚠️ Failed to update session for {sender_email}")
                             else:

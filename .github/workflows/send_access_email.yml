@@ -52,7 +52,7 @@ jobs:
         smtp_host = 'out.postassl.it'
         smtp_port = 465
         smtp_user = 'info@dms.associates'
-        smtp_pass = os.environ.get('IMAP_PASS', 'Dms2023!')
+                smtp_pass = os.environ['IMAP_PASS']
         smtp_from = 'info@dms.associates'
         
         # Dati email
