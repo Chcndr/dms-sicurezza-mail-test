@@ -2,13 +2,14 @@
   "entries": [
     {
       "email": "checchi@me.com",
-      "jti": "reply_1759548665_9028",
-      "added": "2025-10-04T03:31:05.447621Z",
-      "expires": 1759552265,
+      "jti": "reply_1759578723_7656",
+      "added": "2025-10-04T11:52:03.445967Z",
+      "expires": 1759580523,
       "source": "email_reply",
-      "status": "active"
+      "status": "active",
+      "area": "admin"
     }
   ],
-  "last_updated": "2025-10-04T03:31:05.779844Z",
+  "last_updated": "2025-10-04T11:52:03.445994Z",
   "version": "1.0"
 }
