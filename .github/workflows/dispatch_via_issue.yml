@@ -7,7 +7,7 @@ permissions:
   issues: write
 jobs:
   send_email:
-    if: contains(join(fromJson('["' + join(github.event.issue.labels.*.name, '","') + '"]'), ','), 'dispatch-email')
+    if: contains(github.event.issue.labels.*.name, 'dispatch-email')
     runs-on: ubuntu-latest
     steps:
       - name: Parse payload from Issue body
