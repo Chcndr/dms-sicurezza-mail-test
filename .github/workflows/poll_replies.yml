@@ -1,302 +1,40 @@
-name: 📬 Poll Email Replies
-
+name: DMS – Auto Unlock on Email Reply
 on:
+  workflow_dispatch: {}
   schedule:
-    - cron: '*/5 * * * *'  # Every 5 minutes
-  workflow_dispatch:
-
+    - cron: "*/2 * * * *"
 permissions:
   contents: write
-  actions: write
-  metadata: read
-
+  issues: write
 jobs:
-  poll-replies:
+  poll:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: 📥 Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: 🐍 Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-        
-    - name: 📦 Install dependencies
-      run: |
-        pip install PyJWT
-        
-    - name: 📧 Check for email replies
-      run: |
-        python3 << 'EOF'
-        import imaplib
-        import email
-        import json
-        import re
-        from datetime import datetime, timedelta
-        from email.header import decode_header
-        import jwt
-        import os
-
-        # IMAP Configuration (hardcoded working values)
-        IMAP_HOST = "in.postassl.it"
-        IMAP_PORT = 993
-        IMAP_USER = "info@dms.associates"
-        IMAP_PASS = "${{ secrets.IMAP_PASS }}"
-
-        # JWT Configuration
-        JWT_SECRET = "dms-sicurezza-mail-test-secret-key-2024"
-        JWT_ISSUER = "dms-sicurezza-mail-test"
-
-        def extract_duration_from_subject(subject):
-            """Extract duration in minutes from email subject"""
-            try:
-                # Pattern: "🔐 DMS Security - Accesso ADMIN (30 min)"
-                match = re.search(r'\((\d+)\s*min\)', subject)
-                if match:
-                    return int(match.group(1))
-                return 60  # Default 1 hour
-            except:
-                return 60
-
-        def extract_area_from_subject(subject):
-            """Extract access area from email subject"""
-            try:
-                # Pattern: "🔐 DMS Security - Accesso ADMIN (30 min)"
-                match = re.search(r'Accesso\s+(\w+)', subject, re.IGNORECASE)
-                if match:
-                    return match.group(1).lower()
-                return "admin"  # Default
-            except:
-                return "admin"
-
-        def extract_token_from_subject(subject):
-            """Extract JTI from email subject for tracking"""
-            try:
-                # Generate a unique JTI based on timestamp
-                timestamp = int(datetime.utcnow().timestamp())
-                import random
-                jti = f"reply_{timestamp}_{random.randint(1000, 9999)}"
-                return jti
-            except:
-                return f"reply_{int(datetime.utcnow().timestamp())}_0000"
-
-        def load_whitelist():
-            """Load current whitelist"""
-            try:
-                with open('landing/viewer/whitelist.json', 'r') as f:
-                    return json.load(f)
-            except:
-                return {"entries": [], "last_updated": None, "version": "1.0"}
-
-        def save_whitelist(whitelist_data):
-            """Save updated whitelist"""
-            try:
-                with open('landing/viewer/whitelist.json', 'w') as f:
-                    json.dump(whitelist_data, f, indent=2)
-                return True
-            except Exception as e:
-                print(f"Error saving whitelist: {e}")
-                return False
-
-        def load_sessions_status():
-            """Load current sessions status"""
-            try:
-                with open('landing/viewer/sessions_status.json', 'r') as f:
-                    return json.load(f)
-            except:
-                return {"sessions": [], "last_updated": None, "version": "1.0"}
-
-        def save_sessions_status(sessions_data):
-            """Save updated sessions status"""
-            try:
-                with open('landing/viewer/sessions_status.json', 'w') as f:
-                    json.dump(sessions_data, f, indent=2)
-                return True
-            except Exception as e:
-                print(f"Error saving sessions: {e}")
-                return False
-
-        def add_to_whitelist(email_addr, duration_minutes, area, jti):
-            """Add email to whitelist with correct duration"""
-            try:
-                # Calculate expiration using UTC
-                now_utc = datetime.utcnow()
-                expires_utc = now_utc + timedelta(minutes=duration_minutes)
-                expires_timestamp = int(expires_utc.timestamp())
-                
-                print(f"🕐 Duration calculation:")
-                print(f"  - Now UTC: {now_utc}")
-                print(f"  - Duration: {duration_minutes} minutes")
-                print(f"  - Expires UTC: {expires_utc}")
-                print(f"  - Expires timestamp: {expires_timestamp}")
-                
-                whitelist = load_whitelist()
-                
-                # Create new entry
-                new_entry = {
-                    "email": email_addr,
-                    "jti": jti,
-                    "added": now_utc.isoformat() + "Z",
-                    "expires": expires_timestamp,
-                    "status": "active",
-                    "area": area
-                }
-                
-                # Remove existing entries for this email
-                whitelist["entries"] = [e for e in whitelist["entries"] if e["email"] != email_addr]
-                
-                # Add new entry
-                whitelist["entries"].append(new_entry)
-                whitelist["last_updated"] = now_utc.isoformat() + "Z"
-                
-                return save_whitelist(whitelist)
-            except Exception as e:
-                print(f"Error adding to whitelist: {e}")
-                return False
-
-        def update_session_status(email_addr, duration_minutes, area, jti):
-            """Update session status"""
-            try:
-                now_utc = datetime.utcnow()
-                expires_utc = now_utc + timedelta(minutes=duration_minutes)
-                
-                sessions = load_sessions_status()
-                
-                # Create new session
-                new_session = {
-                    "email": email_addr,
-                    "area": area,
-                    "created": now_utc.isoformat() + "Z",
-                    "expires": expires_utc.isoformat() + "Z",
-                    "jti": jti,
-                    "status": "active"
-                }
-                
-                # Remove existing sessions for this email
-                sessions["sessions"] = [s for s in sessions["sessions"] if s["email"] != email_addr]
-                
-                # Add new session
-                sessions["sessions"].append(new_session)
-                sessions["last_updated"] = now_utc.isoformat() + "Z"
-                
-                return save_sessions_status(sessions)
-            except Exception as e:
-                print(f"Error updating session: {e}")
-                return False
-
-        def check_email_replies():
-            """Check for email replies and update whitelist"""
-            try:
-                print(f"🔗 Connecting to IMAP server: {IMAP_HOST}:{IMAP_PORT}")
-                
-                # Connect to IMAP server
-                mail = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT)
-                mail.login(IMAP_USER, IMAP_PASS)
-                mail.select('INBOX')
-                
-                print("✅ Connected successfully to IMAP server")
-                
-                # Search for recent emails (last 24 hours)
-                                search_criteria = '(UNSEEN)'
-                result, message_ids = mail.search(None, search_criteria)
-                
-                if result != 'OK':
-                    print("❌ No messages found")
-                    return False
-                
-                message_ids = message_ids[0].split()
-                print(f"📧 Found {len(message_ids)} messages to check")
-                
-                replies_processed = 0
-                
-                for msg_id in message_ids[-50:]:  # Check last 50 messages
-                    try:
-                        result, msg_data = mail.fetch(msg_id, '(RFC822)')
-                        if result != 'OK':
-                            continue
-                            
-                        email_body = msg_data[0][1]
-                        email_message = email.message_from_bytes(email_body)
-                        
-                        # Get sender
-                        from_header = email_message.get('From', '')
-                        sender_email = re.search(r'[\w\.-]+@[\w\.-]+', from_header)
-                        if not sender_email:
-                            continue
-                        sender_email = sender_email.group().lower()
-                        
-                        # Get subject
-                        subject = email_message.get('Subject', '')
-                        if isinstance(subject, str):
-                            subject_decoded = subject
-                        else:
-                            decoded = decode_header(subject)
-                            subject_decoded = ''.join([
-                                part.decode(encoding or 'utf-8') if isinstance(part, bytes) else part
-                                for part, encoding in decoded
-                            ])
-                        
-                        print(f"📨 Processing email from: {sender_email}")
-                        print(f"📝 Subject: {subject_decoded}")
-                        
-                        # Check if it's a reply to our DMS Security email
-                        if 'DMS Security' in subject_decoded or 'Re:' in subject_decoded:
-                            # Extract duration and area from original subject
-                            duration_minutes = extract_duration_from_subject(subject_decoded)
-                            area = extract_area_from_subject(subject_decoded)
-                            jti = extract_token_from_subject(subject_decoded)
-                            
-                            print(f"🎯 Reply detected!")
-                            print(f"  - Email: {sender_email}")
-                            print(f"  - Duration: {duration_minutes} minutes")
-                            print(f"  - Area: {area}")
-                            print(f"  - JTI: {jti}")
-                            
-                            # Add to whitelist and update session
-                            if add_to_whitelist(sender_email, duration_minutes, area, jti):
-                                if update_session_status(sender_email, duration_minutes, area, jti):
-                                    print(f"✅ Successfully processed reply from {sender_email}")
-                                                                        replies_processed += 1
-                                    mail.store(msg_id, '+FLAGS', '\\Seen')
-                                else:
-                                    print(f"⚠️ Failed to update session for {sender_email}")
-                            else:
-                                print(f"⚠️ Failed to add {sender_email} to whitelist")
-                    
-                    except Exception as e:
-                        print(f"⚠️ Error processing message {msg_id}: {e}")
-                        continue
-                
-                mail.close()
-                mail.logout()
-                
-                print(f"🎉 Processing complete! Processed {replies_processed} replies")
-                return replies_processed > 0
-                
-            except Exception as e:
-                print(f"❌ Error checking emails: {e}")
-                return False
-
-        # Main execution
-        if __name__ == "__main__":
-            print("🚀 Starting email reply polling...")
-            success = check_email_replies()
-            if success:
-                print("✅ Email polling completed successfully")
-            else:
-                print("ℹ️ No new replies found")
-        EOF
-        
-    - name: 💾 Commit changes
-      run: |
-        git config --local user.email "actions@github.com"
-        git config --local user.name "GitHub Actions"
-        git add landing/viewer/whitelist.json landing/viewer/sessions_status.json
-        if git diff --staged --quiet; then
-          echo "No changes to commit"
-        else
-          git commit -m "🔐 Auto-update whitelist and sessions from email replies"
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+      - name: Run poller
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          IMAP_HOST: ${{ secrets.IMAP_HOST }}
+          IMAP_PORT: ${{ secrets.IMAP_PORT || 993 }}
+          IMAP_USER: ${{ secrets.IMAP_USER }}
+          IMAP_PASS: ${{ secrets.IMAP_PASS }}
+          IMAP_FOLDER_INBOX: INBOX
+          IMAP_FOLDER_DONE: Processed
+          WL_PATH: landing/viewer/whitelist.json
+        run: |
+          python .github/scripts/poll_replies.py
+      - name: Commit & push whitelist updates (if any)
+        run: |
+          git config user.name  "dms-bot"
+          git config user.email "dms-bot@users.noreply.github.com"
+          git add landing/viewer/whitelist.json || true
+          git commit -m "auto-unlock: whitelist updated by poller" || echo "No changes"
           git push
-        fi

@@ -176,7 +176,7 @@
             return urlParams.get('t');
         }
 
-        // Verifica autorizzazione
+        // Verifica autorizzazione tramite whitelist centralizzata
         async function checkAuthorization() {
             const token = getTokenFromUrl();
             
@@ -186,38 +186,45 @@
             }
 
             try {
-                // Decodifica token per ottenere email
+                // Decodifica token per ottenere dati
                 const tokenData = JSON.parse(atob(token.split('.')[1]));
                 const email = tokenData.sub || tokenData.email;
+                const jti = tokenData.jti;
+                const exp = tokenData.exp;
                 
-                if (!email) {
-                    showError('Token non valido - email mancante');
+                if (!email && !jti) {
+                    showError('Token non valido - dati mancanti');
                     return false;
                 }
 
-                // Controlla se l'utente ha risposto all'email
-                const sessionKey = `dms_session_${email.replace('@', '_').replace('.', '_')}`;
-                const sessionData = localStorage.getItem(sessionKey);
+                // Controlla whitelist centralizzata
+                const whitelistResponse = await fetch('../viewer/whitelist.json?v=' + Date.now());
+                if (!whitelistResponse.ok) {
+                    console.warn('Whitelist non accessibile, fallback a localStorage');
+                    return checkLocalStorage(email, exp);
+                }
+
+                const whitelist = await whitelistResponse.json();
                 
-                if (sessionData) {
-                    const session = JSON.parse(sessionData);
-                    
-                    // Verifica se la sessione è attiva (utente ha risposto)
-                    if (session.replied && session.realEmail) {
-                        // Verifica se non è scaduta
-                        const now = Date.now();
-                        const expires = new Date(session.expires).getTime();
-                        
-                        if (now < expires) {
-                            return true; // Accesso autorizzato
-                        } else {
-                            showError('Sessione scaduta - richiedi nuovo accesso');
-                            return false;
-                        }
+                // Cerca entry nella whitelist per email o jti
+                const entry = whitelist.entries.find(e => 
+                    (jti && e.jti === jti) || 
+                    (email && e.sub === email)
+                );
+
+                if (entry) {
+                    // Verifica scadenza
+                    const now = Math.floor(Date.now() / 1000);
+                    if (entry.exp && entry.exp > now) {
+                        console.log('✅ Accesso autorizzato via whitelist:', entry);
+                        return true; // Accesso autorizzato
+                    } else {
+                        showError('Sessione scaduta - richiedi nuovo accesso');
+                        return false;
                     }
                 }
 
-                // Simula controllo backend (in futuro sarà una chiamata API reale)
+                // Se non trovato in whitelist, continua a controllare
                 attempts++;
                 
                 if (attempts >= CONFIG.maxAttempts) {
@@ -232,6 +239,30 @@
                 showError('Errore durante la verifica dell\'autorizzazione');
                 return false;
             }
+        }
+
+        // Fallback per localStorage (compatibilità)
+        function checkLocalStorage(email, exp) {
+            if (!email) return false;
+            
+            const sessionKey = `dms_session_${email.replace('@', '_').replace('.', '_')}`;
+            const sessionData = localStorage.getItem(sessionKey);
+            
+            if (sessionData) {
+                const session = JSON.parse(sessionData);
+                
+                if (session.replied && session.realEmail) {
+                    const now = Date.now();
+                    const expires = new Date(session.expires).getTime();
+                    
+                    if (now < expires) {
+                        console.log('✅ Accesso autorizzato via localStorage:', session);
+                        return true;
+                    }
+                }
+            }
+            
+            return null; // Continua a controllare
         }
 
         // Mostra errore

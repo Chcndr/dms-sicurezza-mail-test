@@ -698,7 +698,7 @@ Il workflow invierà l'email utilizzando il server SMTP configurato (info@dms.as
                     body: JSON.stringify({
                         title: `DMS: Send Access Email - ${email}`,
                         body: issueBody,
-                        labels: ['dispatch-email']
+                        labels: ['dispatch-email', 'pending-reply']
                     })
                 });
 

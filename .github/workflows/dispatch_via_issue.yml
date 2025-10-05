@@ -7,7 +7,7 @@ permissions:
   issues: write
 jobs:
   send_email:
-    if: contains(github.event.issue.labels.*.name, 'dispatch-email')
+    if: contains(join(fromJson('["' + join(github.event.issue.labels.*.name, '","') + '"]'), ','), 'dispatch-email')
     runs-on: ubuntu-latest
     steps:
       - name: Parse payload from Issue body
@@ -40,14 +40,13 @@ jobs:
         if: ${{ !contains(steps.parse.outputs.transport, 'starttls') }}
         uses: dawidd6/action-send-mail@v3
         with:
-          server_address: ${{ secrets.SMTP_HOST }}
-          server_port: 465
+          server: ${{ secrets.SMTP_HOST }}
+          port: 465
           secure: true
           username: ${{ secrets.SMTP_USER }}
           password: ${{ secrets.SMTP_PASS }}
           subject: ${{ steps.parse.outputs.subject || 'DMS – Accesso' }}
           to: ${{ steps.parse.outputs.to }}
-          cc: ${{ steps.parse.outputs.cc }}
           from: ${{ steps.parse.outputs.from || secrets.SMTP_FROM }}
           html_body: |
             <p>Ciao,</p>
@@ -60,14 +59,13 @@ jobs:
         if: ${{ contains(steps.parse.outputs.transport, 'starttls') }}
         uses: dawidd6/action-send-mail@v3
         with:
-          server_address: ${{ secrets.SMTP_HOST }}
-          server_port: 587
+          server: ${{ secrets.SMTP_HOST }}
+          port: 587
           secure: false
           username: ${{ secrets.SMTP_USER }}
           password: ${{ secrets.SMTP_PASS }}
           subject: ${{ steps.parse.outputs.subject || 'DMS – Accesso' }}
           to: ${{ steps.parse.outputs.to }}
-          cc: ${{ steps.parse.outputs.cc }}
           from: ${{ steps.parse.outputs.from || secrets.SMTP_FROM }}
           html_body: |
             <p>Ciao,</p>
