@@ -1,0 +1,62 @@
+name: DMS – System Cleanup
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cleanup old Issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import requests, os, json
+          
+          REPO = "${{ github.repository }}"
+          TOKEN = os.environ['GH_TOKEN']
+          
+          headers = {
+            'Authorization': f'token {TOKEN}',
+            'Accept': 'application/vnd.github+json'
+          }
+          
+          # Ottieni tutte le Issue aperte con label pending-reply
+          url = f"https://api.github.com/repos/{REPO}/issues?labels=pending-reply&state=open&per_page=100"
+          response = requests.get(url, headers=headers)
+          
+          if response.status_code != 200:
+            print(f"❌ Errore: {response.status_code}")
+            exit(1)
+          
+          issues = response.json()
+          print(f"📋 Trovate {len(issues)} Issue da chiudere")
+          
+          for issue in issues:
+            issue_number = issue['number']
+            
+            # Commento di chiusura
+            comment_url = f"https://api.github.com/repos/{REPO}/issues/{issue_number}/comments"
+            comment_data = {
+              "body": "🧹 **Pulizia automatica del sistema**\n\nQuesta Issue viene chiusa per preparare il sistema al nuovo test unificato.\n\n*Sistema DMS aggiornato - ora funziona con una sola email!*"
+            }
+            
+            requests.post(comment_url, headers=headers, json=comment_data)
+            
+            # Chiudi Issue
+            close_url = f"https://api.github.com/repos/{REPO}/issues/{issue_number}"
+            close_data = {"state": "closed"}
+            
+            close_response = requests.patch(close_url, headers=headers, json=close_data)
+            
+            if close_response.status_code == 200:
+              print(f"✅ Issue #{issue_number} chiusa")
+            else:
+              print(f"❌ Errore #{issue_number}: {close_response.status_code}")
+          
+          print("🎉 Pulizia completata!")
+          PY
