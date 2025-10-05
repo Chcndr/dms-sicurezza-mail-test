@@ -784,6 +784,40 @@ Il workflow invierà l'email utilizzando il server SMTP configurato (info@dms.as
             }
         }
 
+        // Sincronizza con session_updates.json (aggiornamenti da GitHub Actions)
+        async function syncSessionUpdates() {
+            try {
+                const response = await fetch('./session_updates.json?v=' + Date.now());
+                if (response.ok) {
+                    const sessionUpdates = await response.json();
+                    
+                    // Processa tutti gli aggiornamenti
+                    for (const update of sessionUpdates.updates || []) {
+                        if (update.action === 'session_activated' && update.email) {
+                            const sessionKey = `dms_session_${update.email.replace('@', '_').replace('.', '_')}`;
+                            const existingSession = localStorage.getItem(sessionKey);
+                            
+                            if (existingSession) {
+                                const sessionData = JSON.parse(existingSession);
+                                
+                                // Aggiorna lo stato della sessione
+                                sessionData.replied = true;
+                                sessionData.status = 'active';
+                                sessionData.activated = update.activated_at;
+                                sessionData.expires = new Date(update.expires_at).getTime();
+                                sessionData.activatedBy = 'github_comment';
+                                
+                                localStorage.setItem(sessionKey, JSON.stringify(sessionData));
+                                console.log(`🔓 Sessione attivata via GitHub: ${update.email}`);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn('⚠️ Errore sincronizzazione session_updates:', error);
+            }
+        }
+
         // Carica sessioni attive
         async function caricaSessioniAttive() {
             try {
@@ -792,6 +826,9 @@ Il workflow invierà l'email utilizzando il server SMTP configurato (info@dms.as
 
                 // Prima sincronizza con sessions_status.json
                 await syncSessionsStatus();
+                
+                // Sincronizza con session_updates.json (aggiornamenti da GitHub)
+                await syncSessionUpdates();
 
                 // Carica sessioni reali dal localStorage
                 await new Promise(resolve => setTimeout(resolve, 500));
@@ -857,23 +894,89 @@ Il workflow invierà l'email utilizzando il server SMTP configurato (info@dms.as
                 return;
             }
 
-            let html = '';
+            // Pulsante "Pulisci Tutto" in alto
+            let html = `
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <button onclick="deleteAllSessions()" style="
+                        background: linear-gradient(135deg, #ff4444, #cc0000);
+                        color: white;
+                        border: none;
+                        padding: 8px 16px;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-weight: bold;
+                        font-size: 12px;
+                    ">🧹 PULISCI TUTTE LE SESSIONI</button>
+                </div>
+            `;
+
             sessioni.forEach(sessione => {
+                const sessionKey = `dms_session_${sessione.email.replace('@', '_').replace('.', '_')}`;
                 html += `
-                    <div class="session-item">
+                    <div class="session-item" style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
                             <strong>${sessione.email}</strong><br>
                             <small>Area: ${sessione.area} | Creata: ${sessione.created}</small>
                         </div>
-                        <div style="text-align: right;">
-                            <div style="color: #ffa500; font-weight: bold;">${sessione.status}</div>
-                            <small>${sessione.expires}</small>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="text-align: right;">
+                                <div style="color: #ffa500; font-weight: bold;">${sessione.status}</div>
+                                <small>${sessione.expires}</small>
+                            </div>
+                            <button onclick="deleteSession('${sessionKey}', '${sessione.email}')" style="
+                                background: linear-gradient(135deg, #ff4444, #cc0000);
+                                color: white;
+                                border: none;
+                                padding: 4px 8px;
+                                border-radius: 4px;
+                                cursor: pointer;
+                                font-size: 12px;
+                                min-width: 60px;
+                            ">🗑️ Elimina</button>
                         </div>
                     </div>
                 `;
             });
 
             elements.sessionsContainer.innerHTML = html;
+        }
+
+        // Funzione per eliminare una singola sessione
+        function deleteSession(sessionKey, email) {
+            if (confirm(`⚠️ Sei sicuro di voler eliminare la sessione per ${email}?`)) {
+                localStorage.removeItem(sessionKey);
+                console.log('🗑️ Sessione eliminata:', email);
+                
+                // Ricarica le sessioni
+                loadSessions();
+                
+                // Mostra messaggio di successo
+                showSuccess(`✅ Sessione ${email} eliminata con successo`);
+            }
+        }
+
+        // Funzione per eliminare tutte le sessioni
+        function deleteAllSessions() {
+            if (confirm('⚠️ ATTENZIONE: Sei sicuro di voler eliminare TUTTE le sessioni?\n\nQuesta azione non può essere annullata.')) {
+                let deletedCount = 0;
+                
+                // Trova e rimuovi tutte le sessioni DMS
+                for (let i = localStorage.length - 1; i >= 0; i--) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('dms_session_')) {
+                        localStorage.removeItem(key);
+                        deletedCount++;
+                    }
+                }
+                
+                console.log(`🧹 Eliminate ${deletedCount} sessioni`);
+                
+                // Ricarica le sessioni
+                loadSessions();
+                
+                // Mostra messaggio di successo
+                showSuccess(`✅ Eliminate tutte le ${deletedCount} sessioni con successo`);
+            }
         }
 
         // Utility functions

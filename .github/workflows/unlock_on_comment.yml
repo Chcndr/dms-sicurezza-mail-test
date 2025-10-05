@@ -145,10 +145,59 @@ jobs:
             -d '{"body":"✅ **Auto-unlock attivato!** Risposta rilevata tramite commento GitHub. Accesso sbloccato per ${{ steps.parse.outputs.email }}."}' \
             "https://api.github.com/repos/${{ github.repository }}/issues/${issue_number}/comments"
 
-      - name: Commit and push whitelist
+      - name: Update backend session status
+        run: |
+          python - <<'PY'
+          import json, time, pathlib, re
+          
+          # Parametri dal step precedente
+          email = "${{ steps.parse.outputs.email }}"
+          jti = "${{ steps.parse.outputs.jti }}"
+          exp = int("${{ steps.parse.outputs.exp }}")
+          area = "${{ steps.parse.outputs.area }}"
+          
+          # Crea file di aggiornamento backend
+          backend_update = {
+            "action": "session_activated",
+            "email": email,
+            "jti": jti,
+            "status": "active",
+            "activated_at": time.strftime("%Y-%m-%dT%H:%M:%S.%fZ", time.gmtime()),
+            "expires_at": time.strftime("%Y-%m-%dT%H:%M:%S.%fZ", time.gmtime(exp)),
+            "area": area,
+            "message": f"Sessione attivata tramite risposta GitHub per {email}"
+          }
+          
+          # Salva file di aggiornamento che il pannello può leggere
+          update_path = pathlib.Path("landing/admin/session_updates.json")
+          
+          # Carica aggiornamenti esistenti
+          if update_path.exists():
+            try:
+              updates = json.loads(update_path.read_text())
+            except:
+              updates = {"updates": []}
+          else:
+            updates = {"updates": []}
+          
+          # Aggiungi nuovo aggiornamento
+          updates["updates"].append(backend_update)
+          updates["last_updated"] = time.strftime("%Y-%m-%dT%H:%M:%S.%fZ", time.gmtime())
+          
+          # Mantieni solo gli ultimi 50 aggiornamenti
+          updates["updates"] = updates["updates"][-50:]
+          
+          # Salva file
+          update_path.parent.mkdir(parents=True, exist_ok=True)
+          update_path.write_text(json.dumps(updates, ensure_ascii=False, indent=2))
+          
+          print(f"✅ Backend aggiornato: sessione {email} attivata")
+          PY
+
+      - name: Commit and push changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add landing/viewer/whitelist.json
-          git commit -m "Auto-unlock: Aggiornata whitelist per ${{ steps.parse.outputs.email }}" || exit 0
+          git add landing/viewer/whitelist.json landing/admin/session_updates.json
+          git commit -m "Auto-unlock: Aggiornata whitelist e backend per ${{ steps.parse.outputs.email }}" || exit 0
           git push
