@@ -279,8 +279,8 @@
                 </div>
                 <div class="config-item">
                     <label>📬 Email Sistema (CC):</label>
-                    <input type="text" value="dms-sicurezza-mail-test@noreply.github.com" readonly>
-                    <small style="color: rgba(255,255,255,0.7);">Solo sistema di sblocco GitHub (risposte vanno automaticamente a info@dms.associates)</small>
+                    <input type="text" value="info@dms.associates" readonly>
+                    <small style="color: rgba(255,255,255,0.7);">Sistema di sblocco - gli utenti devono rispondere a questo indirizzo</small>
                 </div>
                 <div class="config-item">
                     <label>📡 Status Sistema:</label>
@@ -596,7 +596,7 @@
                     sub: email,
                     area: area,
                     duration: durata,
-                    exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 ore per attivazione
+                    exp: Math.floor(Date.now() / 1000) + (durata * 60), // Scadenza basata sulla durata scelta
                     jti: generateUniqueId(),
                     email: email
                 });
@@ -661,11 +661,11 @@ Il destinatario deve rispondere all'email per attivare la sessione.`);
                 // Crea Issue GitHub con il payload per il workflow email
                 const issuePayload = {
                     to: email,
-                    cc: 'dms-sicurezza-mail-test@noreply.github.com',
+                    cc: 'info@dms.associates',
                     token_link: accessLink,
                     subject: subject,
                     transport: 'smtps',
-                    html_extra: `<p><strong>Area di accesso:</strong> ${area}</p><p><strong>Durata sessione:</strong> ${durata} minuti</p><p><strong>Importante:</strong> Rispondi a questa email per attivare la sessione.</p><p><small>Sistema di sblocco: dms-sicurezza-mail-test@noreply.github.com</small></p>`
+                    html_extra: `<p><strong>Area di accesso:</strong> ${area}</p><p><strong>Durata sessione:</strong> ${durata} minuti</p><p><strong>Importante:</strong> Rispondi a questa email per attivare la sessione.</p><p><small>Sistema di sblocco: info@dms.associates</small></p>`
                 };
 
                 // Crea il body dell'Issue con il formato richiesto dal workflow
