@@ -159,7 +159,6 @@
         const CONFIG = {
             checkInterval: 3000, // Controlla ogni 3 secondi
             maxAttempts: 100,    // Massimo 5 minuti di tentativi
-            apiEndpoint: 'https://chcndr.github.io/dms-sicurezza-mail-test/api'
         };
 
         let attempts = 0;
@@ -200,13 +199,13 @@
                 // Controlla whitelist centralizzata
                 const whitelistResponse = await fetch('../viewer/whitelist.json?v=' + Date.now());
                 if (!whitelistResponse.ok) {
-                    console.warn('Whitelist non accessibile, fallback a localStorage');
-                    return checkLocalStorage(email, exp);
+                    showError('Impossibile accedere alla lista di autorizzazione.');
+                    return false;
                 }
 
                 const whitelist = await whitelistResponse.json();
                 
-                // Cerca entry nella whitelist per email o jti
+                // Cerca entry nella whitelist per jti o email (fallback robusto)
                 const entry = whitelist.entries.find(e => 
                     (jti && e.jti === jti) || 
                     (email && e.sub === email)
@@ -224,45 +223,14 @@
                     }
                 }
 
-                // Se non trovato in whitelist, continua a controllare
-                attempts++;
-                
-                if (attempts >= CONFIG.maxAttempts) {
-                    showError('Timeout verifica - l\'utente non ha ancora risposto all\'email');
-                    return false;
-                }
-
-                return null; // Continua a controllare
+                // Se non trovato, continua a controllare
+                return null;
                 
             } catch (error) {
                 console.error('Errore verifica autorizzazione:', error);
                 showError('Errore durante la verifica dell\'autorizzazione');
                 return false;
             }
-        }
-
-        // Fallback per localStorage (compatibilità)
-        function checkLocalStorage(email, exp) {
-            if (!email) return false;
-            
-            const sessionKey = `dms_session_${email.replace('@', '_').replace('.', '_')}`;
-            const sessionData = localStorage.getItem(sessionKey);
-            
-            if (sessionData) {
-                const session = JSON.parse(sessionData);
-                
-                if (session.replied && session.realEmail) {
-                    const now = Date.now();
-                    const expires = new Date(session.expires).getTime();
-                    
-                    if (now < expires) {
-                        console.log('✅ Accesso autorizzato via localStorage:', session);
-                        return true;
-                    }
-                }
-            }
-            
-            return null; // Continua a controllare
         }
 
         // Mostra errore
@@ -294,27 +262,25 @@
         async function startVerification() {
             console.log('🔐 Avvio verifica autorizzazione DMS...');
             
-            const result = await checkAuthorization();
-            
-            if (result === true) {
-                unlockSite();
-                return;
-            } else if (result === false) {
-                return; // Errore già mostrato
-            }
-            
-            // Continua a controllare
+            // CORREZIONE PRINCIPALE: Sposta il loop di polling qui con incremento del contatore
             checkTimer = setInterval(async () => {
+                attempts++; // INCREMENTO CONTATORE SPOSTATO QUI
+                
+                if (attempts > CONFIG.maxAttempts) {
+                    showError('Timeout verifica - l\'utente non ha ancora risposto all\'email');
+                    return;
+                }
+
                 const result = await checkAuthorization();
                 
                 if (result === true) {
                     unlockSite();
                 } else if (result === false) {
-                    // Errore - stop
+                    // Errore già mostrato da checkAuthorization
                     return;
                 }
                 
-                // Aggiorna messaggio
+                // Aggiorna messaggio di stato con contatore funzionante
                 statusMessage.innerHTML = `
                     <div class="loading"></div>
                     Verificando autorizzazione... (tentativo ${attempts}/${CONFIG.maxAttempts})
