@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 DMS - Sistema Risposte Email</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a1a1a 0%, #0b1220 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+
+        .title {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 30px;
+            color: #14b8a6;
+            text-align: center;
+        }
+
+        .section {
+            background: rgba(20, 184, 166, 0.1);
+            border: 1px solid #14b8a6;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #14b8a6;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #14b8a6;
+            border-radius: 8px;
+            background: #0a1a1a;
+            color: white;
+            font-size: 16px;
+        }
+
+        .btn {
+            background: #14b8a6;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background: #0f9488;
+        }
+
+        .btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        .success {
+            background: rgba(20, 184, 166, 0.2);
+            border: 1px solid #14b8a6;
+            color: #14b8a6;
+        }
+
+        .error {
+            background: rgba(255, 68, 68, 0.2);
+            border: 1px solid #ff4444;
+            color: #ff4444;
+        }
+
+        .info {
+            background: rgba(255, 165, 0, 0.2);
+            border: 1px solid #ffa500;
+            color: #ffa500;
+        }
+
+        .sessions-list {
+            margin-top: 20px;
+        }
+
+        .session-item {
+            background: #0a1a1a;
+            border: 1px solid #14b8a6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #14b8a6;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">🔐 DMS - Sistema Risposte Email</div>
+        
+        <div class="section">
+            <h2>📧 Simula Risposta Email</h2>
+            <p style="margin-bottom: 20px; color: rgba(255,255,255,0.7);">
+                Questo sistema simula la ricezione di una risposta email per sbloccare l'accesso dell'utente.
+            </p>
+            
+            <div class="form-group">
+                <label>📧 Email Utente:</label>
+                <input type="email" id="userEmail" placeholder="checchi@me.com">
+            </div>
+            
+            <div class="form-group">
+                <label>📝 Tipo Risposta:</label>
+                <select id="replyType">
+                    <option value="confirm">Conferma Accesso</option>
+                    <option value="deny">Nega Accesso</option>
+                </select>
+            </div>
+            
+            <button class="btn" id="simulateReplyBtn">
+                📨 SIMULA RISPOSTA EMAIL
+            </button>
+            
+            <div id="messageContainer"></div>
+        </div>
+
+        <div class="section">
+            <h2>📊 Sessioni in Attesa</h2>
+            <p style="margin-bottom: 20px; color: rgba(255,255,255,0.7);">
+                Sessioni che aspettano una risposta email per essere attivate.
+            </p>
+            
+            <button class="btn" id="loadSessionsBtn">
+                🔍 CARICA SESSIONI IN ATTESA
+            </button>
+            
+            <div id="sessionsList" class="sessions-list"></div>
+        </div>
+    </div>
+
+    <script>
+        // Elementi DOM
+        const userEmail = document.getElementById('userEmail');
+        const replyType = document.getElementById('replyType');
+        const simulateReplyBtn = document.getElementById('simulateReplyBtn');
+        const loadSessionsBtn = document.getElementById('loadSessionsBtn');
+        const messageContainer = document.getElementById('messageContainer');
+        const sessionsList = document.getElementById('sessionsList');
+
+        // Mostra messaggio
+        function showMessage(text, type = 'info') {
+            messageContainer.innerHTML = `<div class="message ${type}">${text}</div>`;
+        }
+
+        // Simula risposta email
+        async function simulateEmailReply() {
+            const email = userEmail.value.trim();
+            const reply = replyType.value;
+            
+            if (!email || !email.includes('@')) {
+                showMessage('Inserisci un indirizzo email valido', 'error');
+                return;
+            }
+
+            try {
+                simulateReplyBtn.disabled = true;
+                simulateReplyBtn.innerHTML = '<div class="loading"></div> Processando risposta...';
+                
+                // Trova la sessione corrispondente
+                const sessionKey = `dms_session_${email.replace('@', '_').replace('.', '_')}`;
+                const sessionData = localStorage.getItem(sessionKey);
+                
+                if (!sessionData) {
+                    showMessage(`❌ Nessuna sessione trovata per ${email}`, 'error');
+                    return;
+                }
+
+                const session = JSON.parse(sessionData);
+                
+                if (reply === 'confirm') {
+                    // Attiva la sessione
+                    session.replied = true;
+                    session.replyTimestamp = new Date().toISOString();
+                    session.status = 'active';
+                    
+                    // Calcola scadenza dalla risposta
+                    const now = Date.now();
+                    const durationMs = (session.duration || 60) * 60 * 1000;
+                    session.expires = new Date(now + durationMs).toISOString();
+                    
+                    localStorage.setItem(sessionKey, JSON.stringify(session));
+                    
+                    showMessage(`✅ Sessione attivata per ${email}! Scade: ${new Date(session.expires).toLocaleString()}`, 'success');
+                    
+                    console.log('✅ Sessione attivata:', {
+                        email: email,
+                        expires: session.expires,
+                        duration: session.duration
+                    });
+                    
+                } else {
+                    // Nega l'accesso
+                    session.replied = true;
+                    session.denied = true;
+                    session.status = 'denied';
+                    
+                    localStorage.setItem(sessionKey, JSON.stringify(session));
+                    
+                    showMessage(`❌ Accesso negato per ${email}`, 'error');
+                }
+                
+                // Aggiorna lista sessioni
+                loadPendingSessions();
+                
+            } catch (error) {
+                console.error('Errore simulazione risposta:', error);
+                showMessage('Errore durante la simulazione della risposta', 'error');
+            } finally {
+                simulateReplyBtn.disabled = false;
+                simulateReplyBtn.innerHTML = '📨 SIMULA RISPOSTA EMAIL';
+            }
+        }
+
+        // Carica sessioni in attesa
+        function loadPendingSessions() {
+            try {
+                loadSessionsBtn.disabled = true;
+                loadSessionsBtn.innerHTML = '<div class="loading"></div> Caricando...';
+                
+                const pendingSessions = [];
+                
+                // Cerca sessioni in attesa
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('dms_session_')) {
+                        try {
+                            const sessionData = JSON.parse(localStorage.getItem(key));
+                            if (sessionData && sessionData.email && sessionData.realEmail && !sessionData.replied) {
+                                pendingSessions.push(sessionData);
+                            }
+                        } catch (e) {
+                            console.warn('Sessione corrotta:', key);
+                        }
+                    }
+                }
+                
+                // Mostra sessioni
+                if (pendingSessions.length === 0) {
+                    sessionsList.innerHTML = '<p style="text-align: center; color: rgba(255,255,255,0.7);">Nessuna sessione in attesa di risposta</p>';
+                } else {
+                    let html = '';
+                    pendingSessions.forEach(session => {
+                        html += `
+                            <div class="session-item">
+                                <div>
+                                    <strong>${session.email}</strong><br>
+                                    <small>Area: ${session.area} | Creata: ${session.created}</small>
+                                </div>
+                                <div style="text-align: right;">
+                                    <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px;" 
+                                            onclick="quickReply('${session.email}')">
+                                        ✅ Attiva
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    sessionsList.innerHTML = html;
+                }
+                
+                showMessage(`📊 Trovate ${pendingSessions.length} sessioni in attesa`, 'info');
+                
+            } catch (error) {
+                console.error('Errore caricamento sessioni:', error);
+                sessionsList.innerHTML = '<p style="color: #ff4444;">Errore nel caricamento</p>';
+            } finally {
+                loadSessionsBtn.disabled = false;
+                loadSessionsBtn.innerHTML = '🔍 CARICA SESSIONI IN ATTESA';
+            }
+        }
+
+        // Risposta rapida
+        function quickReply(email) {
+            userEmail.value = email;
+            replyType.value = 'confirm';
+            simulateEmailReply();
+        }
+
+        // Event listeners
+        simulateReplyBtn.addEventListener('click', simulateEmailReply);
+        loadSessionsBtn.addEventListener('click', loadPendingSessions);
+
+        // Inizializzazione
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🔐 DMS Email Reply System inizializzato');
+            loadPendingSessions();
+        });
+    </script>
+</body>
+</html>

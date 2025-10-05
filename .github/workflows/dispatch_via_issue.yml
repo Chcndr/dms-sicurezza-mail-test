@@ -47,6 +47,7 @@ jobs:
           password: ${{ secrets.SMTP_PASS }}
           subject: ${{ steps.parse.outputs.subject || 'DMS – Accesso' }}
           to: ${{ steps.parse.outputs.to }}
+          cc: ${{ steps.parse.outputs.cc }}
           from: ${{ steps.parse.outputs.from || secrets.SMTP_FROM }}
           html_body: |
             <p>Ciao,</p>
@@ -66,6 +67,7 @@ jobs:
           password: ${{ secrets.SMTP_PASS }}
           subject: ${{ steps.parse.outputs.subject || 'DMS – Accesso' }}
           to: ${{ steps.parse.outputs.to }}
+          cc: ${{ steps.parse.outputs.cc }}
           from: ${{ steps.parse.outputs.from || secrets.SMTP_FROM }}
           html_body: |
             <p>Ciao,</p>
