@@ -48,6 +48,7 @@ jobs:
           subject: ${{ steps.parse.outputs.subject || 'DMS – Accesso' }}
           to: ${{ steps.parse.outputs.to }}
           from: ${{ steps.parse.outputs.from || secrets.IMAP_USER }}
+          cc: ${{ secrets.IMAP_USER }}
           html_body: |
             <p>Ciao,</p>
             <p>ecco il tuo link di accesso: <a href="${{ steps.parse.outputs.token_link }}">${{ steps.parse.outputs.token_link }}</a></p>
@@ -67,6 +68,7 @@ jobs:
           subject: ${{ steps.parse.outputs.subject || 'DMS – Accesso' }}
           to: ${{ steps.parse.outputs.to }}
           from: ${{ steps.parse.outputs.from || secrets.IMAP_USER }}
+          cc: ${{ secrets.IMAP_USER }}
           html_body: |
             <p>Ciao,</p>
             <p>ecco il tuo link di accesso: <a href="${{ steps.parse.outputs.token_link }}">${{ steps.parse.outputs.token_link }}</a></p>
