@@ -40,8 +40,8 @@ jobs:
         if: ${{ !contains(steps.parse.outputs.transport, 'starttls') }}
         uses: dawidd6/action-send-mail@v3
         with:
-          server: out.postassl.it
-          port: 465
+          server_address: out.postassl.it
+          server_port: 465
           secure: true
           username: ${{ secrets.IMAP_USER }}
           password: ${{ secrets.IMAP_PASS }}
@@ -59,8 +59,8 @@ jobs:
         if: ${{ contains(steps.parse.outputs.transport, 'starttls') }}
         uses: dawidd6/action-send-mail@v3
         with:
-          server: out.postassl.it
-          port: 587
+          server_address: out.postassl.it
+          server_port: 587
           secure: false
           username: ${{ secrets.IMAP_USER }}
           password: ${{ secrets.IMAP_PASS }}
