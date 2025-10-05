@@ -247,7 +247,7 @@
             
             // Calcola timestamp di scadenza
             const now = Math.floor(Date.now() / 1000);
-            const exp = now + duration;
+            const exp = now + duration + 7200; // Aggiungo 2 ore per il fuso orario
             
             // Crea il payload JWT
             const payload = {

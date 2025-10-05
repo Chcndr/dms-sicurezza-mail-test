@@ -310,7 +310,7 @@ class DMSAuthGate {
             border: 1px solid #00ff00;
         `;
         
-        const expiry = new Date(tokenPayload.exp * 1000).toLocaleString('it-IT');
+        const expiry = new Date(tokenPayload.exp).toLocaleString('it-IT');
         
         debugPanel.innerHTML = `
             <div style="color: #00ff00; font-weight: bold; margin-bottom: 10px;">🔐 DMS Debug Info</div>

@@ -158,7 +158,7 @@
         // Configurazione
         const CONFIG = {
             checkInterval: 3000, // Controlla ogni 3 secondi
-            maxAttempts: 100,    // Massimo 5 minuti di tentativi
+            maxAttempts: 100,    // Massimo tentativi
         };
 
         let attempts = 0;
@@ -258,19 +258,37 @@
             }
         }
 
-        // Avvia verifica
+        // Avvia verifica - CORREZIONE PRINCIPALE
         async function startVerification() {
             console.log('🔐 Avvio verifica autorizzazione DMS...');
             
-            // CORREZIONE PRINCIPALE: Sposta il loop di polling qui con incremento del contatore
+            // Prima verifica immediata
+            const initialResult = await checkAuthorization();
+            if (initialResult === true) {
+                unlockSite();
+                return;
+            } else if (initialResult === false) {
+                return; // Errore già mostrato
+            }
+            
+            // Avvia il polling con contatore funzionante
             checkTimer = setInterval(async () => {
-                attempts++; // INCREMENTO CONTATORE SPOSTATO QUI
+                // INCREMENTO CONTATORE ALL'INIZIO DEL CICLO
+                attempts++;
                 
+                // Aggiorna subito il messaggio con il nuovo contatore
+                statusMessage.innerHTML = `
+                    <div class="loading"></div>
+                    Verificando autorizzazione... (tentativo ${attempts}/${CONFIG.maxAttempts})
+                `;
+                
+                // Controlla se abbiamo superato il limite
                 if (attempts > CONFIG.maxAttempts) {
                     showError('Timeout verifica - l\'utente non ha ancora risposto all\'email');
                     return;
                 }
 
+                // Esegui la verifica
                 const result = await checkAuthorization();
                 
                 if (result === true) {
@@ -280,17 +298,13 @@
                     return;
                 }
                 
-                // Aggiorna messaggio di stato con contatore funzionante
-                statusMessage.innerHTML = `
-                    <div class="loading"></div>
-                    Verificando autorizzazione... (tentativo ${attempts}/${CONFIG.maxAttempts})
-                `;
+                // Se result === null, continua il loop (nessun match trovato)
             }, CONFIG.checkInterval);
         }
 
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('🚀 DMS Unlock System inizializzato');
+            console.log('🚀 DMS Unlock System inizializzato - Versione Corretta v2.0');
             startVerification();
         });
     </script>

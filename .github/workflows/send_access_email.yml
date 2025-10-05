@@ -64,9 +64,9 @@ jobs:
         msg = MIMEMultipart('alternative')
         msg['From'] = smtp_from
         msg['To'] = recipient
-        # CC solo al sistema di sblocco GitHub (non a noi stessi!)
+        # CC e Reply-To configurati per GitHub Issues (indirizzo valido)
         msg['Cc'] = "dms-sicurezza-mail-test@noreply.github.com"
-        msg['Reply-To'] = smtp_from  # Reply-To a DMS per ricevere risposte
+        msg['Reply-To'] = "dms-sicurezza-mail-test@noreply.github.com"  # Reply-To GitHub per ricevere risposte
         msg['Subject'] = subject
         
         # Template HTML
