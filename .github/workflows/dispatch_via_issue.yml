@@ -40,14 +40,14 @@ jobs:
         if: ${{ !contains(steps.parse.outputs.transport, 'starttls') }}
         uses: dawidd6/action-send-mail@v3
         with:
-          server: ${{ secrets.SMTP_HOST }}
+          server: out.postassl.it
           port: 465
           secure: true
-          username: ${{ secrets.SMTP_USER }}
-          password: ${{ secrets.SMTP_PASS }}
+          username: ${{ secrets.IMAP_USER }}
+          password: ${{ secrets.IMAP_PASS }}
           subject: ${{ steps.parse.outputs.subject || 'DMS – Accesso' }}
           to: ${{ steps.parse.outputs.to }}
-          from: ${{ steps.parse.outputs.from || secrets.SMTP_FROM }}
+          from: ${{ steps.parse.outputs.from || secrets.IMAP_USER }}
           html_body: |
             <p>Ciao,</p>
             <p>ecco il tuo link di accesso: <a href="${{ steps.parse.outputs.token_link }}">${{ steps.parse.outputs.token_link }}</a></p>
@@ -59,14 +59,14 @@ jobs:
         if: ${{ contains(steps.parse.outputs.transport, 'starttls') }}
         uses: dawidd6/action-send-mail@v3
         with:
-          server: ${{ secrets.SMTP_HOST }}
+          server: out.postassl.it
           port: 587
           secure: false
-          username: ${{ secrets.SMTP_USER }}
-          password: ${{ secrets.SMTP_PASS }}
+          username: ${{ secrets.IMAP_USER }}
+          password: ${{ secrets.IMAP_PASS }}
           subject: ${{ steps.parse.outputs.subject || 'DMS – Accesso' }}
           to: ${{ steps.parse.outputs.to }}
-          from: ${{ steps.parse.outputs.from || secrets.SMTP_FROM }}
+          from: ${{ steps.parse.outputs.from || secrets.IMAP_USER }}
           html_body: |
             <p>Ciao,</p>
             <p>ecco il tuo link di accesso: <a href="${{ steps.parse.outputs.token_link }}">${{ steps.parse.outputs.token_link }}</a></p>
