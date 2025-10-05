@@ -9,7 +9,17 @@
       "expires_at": "2025-10-05T23:58:44.%fZ",
       "area": "admin",
       "message": "Sessione attivata tramite risposta GitHub per checchi@me.com"
+    },
+    {
+      "action": "session_activated",
+      "email": "checchi@me.com",
+      "jti": "",
+      "status": "active",
+      "activated_at": "2025-10-05T23:36:55.%fZ",
+      "expires_at": "2025-10-06T00:36:53.%fZ",
+      "area": "admin",
+      "message": "Sessione attivata tramite risposta GitHub per checchi@me.com"
     }
   ],
-  "last_updated": "2025-10-05T22:58:45.%fZ"
+  "last_updated": "2025-10-05T23:36:55.%fZ"
 }
