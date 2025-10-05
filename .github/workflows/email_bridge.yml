@@ -1,0 +1,146 @@
+name: DMS – Email Bridge (Reply to Issue)
+on:
+  schedule:
+    - cron: '*/2 * * * *'  # Ogni 2 minuti
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  email_bridge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check email replies and link to Issues
+        env:
+          IMAP_USER: ${{ secrets.IMAP_USER }}
+          IMAP_PASS: ${{ secrets.IMAP_PASS }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import imaplib, email, re, json, requests, os, time
+          from email.header import decode_header
+          
+          # Connessione IMAP
+          try:
+            mail = imaplib.IMAP4_SSL('in.postassl.it', 993)
+            mail.login(os.environ['IMAP_USER'], os.environ['IMAP_PASS'])
+            mail.select('INBOX')
+            print("✅ Connesso a IMAP")
+          except Exception as e:
+            print(f"❌ Errore IMAP: {e}")
+            exit(1)
+          
+          # Cerca email degli ultimi 5 minuti
+          import datetime
+          since_date = (datetime.datetime.now() - datetime.timedelta(minutes=5)).strftime("%d-%b-%Y")
+          
+          try:
+            status, messages = mail.search(None, f'SINCE {since_date}')
+            if status != 'OK':
+              print("Nessun messaggio trovato")
+              mail.logout()
+              exit(0)
+            
+            message_ids = messages[0].split()
+            print(f"📧 Trovati {len(message_ids)} messaggi recenti")
+            
+            for msg_id in message_ids[-10:]:  # Ultimi 10 messaggi
+              try:
+                status, msg_data = mail.fetch(msg_id, '(RFC822)')
+                if status != 'OK':
+                  continue
+                
+                raw_email = msg_data[0][1]
+                email_message = email.message_from_bytes(raw_email)
+                
+                # Estrai subject
+                subject = email_message.get('Subject', '')
+                if isinstance(subject, str):
+                  subject_decoded = subject
+                else:
+                  subject_decoded = str(decode_header(subject)[0][0])
+                
+                # Estrai mittente
+                from_addr = email_message.get('From', '')
+                
+                # Cerca riferimento a Issue DMS
+                issue_match = re.search(r'(?:Re:|RE:).*?DMS.*?\[jti=([^\]]+)\]', subject_decoded, re.I)
+                if not issue_match:
+                  # Prova anche nel corpo dell'email
+                  body = ""
+                  if email_message.is_multipart():
+                    for part in email_message.walk():
+                      if part.get_content_type() == "text/plain":
+                        body = part.get_payload(decode=True).decode('utf-8', errors='ignore')
+                        break
+                  else:
+                    body = email_message.get_payload(decode=True).decode('utf-8', errors='ignore')
+                  
+                  issue_match = re.search(r'Issue #(\d+)', body)
+                
+                if issue_match:
+                  if 'jti=' in subject_decoded:
+                    jti = issue_match.group(1)
+                    print(f"📧 Risposta rilevata per JTI: {jti}")
+                  else:
+                    issue_number = issue_match.group(1)
+                    print(f"📧 Risposta rilevata per Issue #{issue_number}")
+                  
+                  # Trova Issue corrispondente
+                  repo = "${{ github.repository }}"
+                  headers = {
+                    'Authorization': f'token {os.environ["GH_TOKEN"]}',
+                    'Accept': 'application/vnd.github+json'
+                  }
+                  
+                  # Cerca Issue con label pending-reply
+                  issues_url = f"https://api.github.com/repos/{repo}/issues?labels=pending-reply&state=open"
+                  response = requests.get(issues_url, headers=headers)
+                  
+                  if response.status_code == 200:
+                    issues = response.json()
+                    
+                    for issue in issues:
+                      issue_body = issue.get('body', '')
+                      
+                      # Verifica se questa Issue corrisponde alla risposta
+                      if ('jti=' in subject_decoded and jti in issue_body) or \
+                         (issue_match and str(issue['number']) == issue_number):
+                        
+                        # Commenta l'Issue per attivare il workflow di sblocco
+                        comment_url = f"https://api.github.com/repos/{repo}/issues/{issue['number']}/comments"
+                        comment_data = {
+                          "body": f"✅ **Risposta email ricevuta automaticamente**\n\n**Da:** {from_addr}\n**Oggetto:** {subject_decoded}\n\n*Sistema di bridge attivato - sblocco in corso...*"
+                        }
+                        
+                        comment_response = requests.post(comment_url, headers=headers, json=comment_data)
+                        
+                        if comment_response.status_code == 201:
+                          print(f"✅ Commento aggiunto all'Issue #{issue['number']}")
+                          
+                          # Marca email come processata (sposta in cartella o flag)
+                          mail.store(msg_id, '+FLAGS', '\\Seen')
+                          
+                        else:
+                          print(f"❌ Errore nel commentare Issue #{issue['number']}: {comment_response.status_code}")
+                        
+                        break
+                
+              except Exception as e:
+                print(f"❌ Errore nel processare messaggio {msg_id}: {e}")
+                continue
+            
+            mail.logout()
+            print("✅ Controllo email completato")
+            
+          except Exception as e:
+            print(f"❌ Errore nella ricerca: {e}")
+            mail.logout()
+          PY

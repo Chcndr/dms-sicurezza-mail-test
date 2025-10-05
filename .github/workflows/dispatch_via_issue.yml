@@ -18,7 +18,10 @@ jobs:
           python - <<'PY'
           import os, json, re, sys, html
           ev = json.load(open(os.environ['GITHUB_EVENT_PATH']))
-          body = ev['issue'].get('body') or ''
+          issue = ev['issue']
+          body = issue.get('body') or ''
+          issue_number = issue.get('number', '')
+          
           m = re.search(r'<!--DMS:START-->\s*```json\s*(\{.*?\})\s*```\s*<!--DMS:END-->', body, re.S)
           if not m:
             print('::error ::Blocco JSON non trovato (<!--DMS:START--> ... <!--DMS:END-->)'); sys.exit(1)
@@ -29,11 +32,17 @@ jobs:
           for k in ('to','token_link'):
             if not data.get(k):
               print(f'::error ::Campo mancante: {k}'); sys.exit(1)
+          
+          # Crea Reply-To speciale per collegare alla Issue
+          reply_to = f"dms-reply-{issue_number}@dms.associates"
+          
           # sanitize basic fields
           out = os.environ['GITHUB_OUTPUT']
           with open(out,'a') as f:
             for k,v in data.items():
               f.write(f"{k}={str(v).strip()}\n")
+            f.write(f"reply_to={reply_to}\n")
+            f.write(f"issue_number={issue_number}\n")
           PY
 
       - name: Send email via SMTP (465 SMTPS)
@@ -48,12 +57,24 @@ jobs:
           subject: ${{ steps.parse.outputs.subject || format('DMS – Accesso [jti={0}]', steps.parse.outputs.jti) }}
           to: ${{ steps.parse.outputs.to }}
           from: ${{ steps.parse.outputs.from || secrets.IMAP_USER }}
-          cc: ${{ secrets.IMAP_USER }}
+          reply_to: ${{ steps.parse.outputs.reply_to }}
           html_body: |
+            <h3>🔐 DMS Security - Link di Accesso</h3>
             <p>Ciao,</p>
-            <p>ecco il tuo link di accesso: <a href="${{ steps.parse.outputs.token_link }}">${{ steps.parse.outputs.token_link }}</a></p>
-            <p>La sessione dura 60 minuti.</p>
-            ${{ steps.parse.outputs.html_extra }}
+            <p><strong>Il tuo link di accesso:</strong><br>
+            <a href="${{ steps.parse.outputs.token_link }}" style="background: #007cba; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">🚀 ACCEDI AL SISTEMA</a></p>
+            
+            <p><strong>⚠️ IMPORTANTE:</strong> Per attivare la sessione, <strong>RISPONDI A QUESTA EMAIL</strong> con qualsiasi messaggio (anche solo "OK").</p>
+            
+            <p><strong>Come funziona:</strong></p>
+            <ol>
+              <li>📧 <strong>Rispondi a questa email</strong> → Sistema si attiva automaticamente</li>
+              <li>🔗 <strong>Clicca il link sopra</strong> → Accedi al sistema</li>
+              <li>⏰ <strong>Sessione attiva per ${{ steps.parse.outputs.duration || '60' }} minuti</strong></li>
+            </ol>
+            
+            <hr>
+            <p><small>Sistema di sicurezza DMS - Issue #${{ steps.parse.outputs.issue_number }}</small></p>
           ignore_cert: false
 
       - name: Send email via SMTP (587 STARTTLS)
@@ -68,12 +89,24 @@ jobs:
           subject: ${{ steps.parse.outputs.subject || format('DMS – Accesso [jti={0}]', steps.parse.outputs.jti) }}
           to: ${{ steps.parse.outputs.to }}
           from: ${{ steps.parse.outputs.from || secrets.IMAP_USER }}
-          cc: ${{ secrets.IMAP_USER }}
+          reply_to: ${{ steps.parse.outputs.reply_to }}
           html_body: |
+            <h3>🔐 DMS Security - Link di Accesso</h3>
             <p>Ciao,</p>
-            <p>ecco il tuo link di accesso: <a href="${{ steps.parse.outputs.token_link }}">${{ steps.parse.outputs.token_link }}</a></p>
-            <p>La sessione dura 60 minuti.</p>
-            ${{ steps.parse.outputs.html_extra }}
+            <p><strong>Il tuo link di accesso:</strong><br>
+            <a href="${{ steps.parse.outputs.token_link }}" style="background: #007cba; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">🚀 ACCEDI AL SISTEMA</a></p>
+            
+            <p><strong>⚠️ IMPORTANTE:</strong> Per attivare la sessione, <strong>RISPONDI A QUESTA EMAIL</strong> con qualsiasi messaggio (anche solo "OK").</p>
+            
+            <p><strong>Come funziona:</strong></p>
+            <ol>
+              <li>📧 <strong>Rispondi a questa email</strong> → Sistema si attiva automaticamente</li>
+              <li>🔗 <strong>Clicca il link sopra</strong> → Accedi al sistema</li>
+              <li>⏰ <strong>Sessione attiva per ${{ steps.parse.outputs.duration || '60' }} minuti</strong></li>
+            </ol>
+            
+            <hr>
+            <p><small>Sistema di sicurezza DMS - Issue #${{ steps.parse.outputs.issue_number }}</small></p>
           ignore_cert: false
 
       - name: Comment esito
