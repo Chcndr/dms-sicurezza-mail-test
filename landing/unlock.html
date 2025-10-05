@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 DMS - Verifica Accesso</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000000;
+            color: white;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .unlock-container {
+            text-align: center;
+            padding: 40px;
+            max-width: 600px;
+        }
+
+        .lock-icon {
+            font-size: 80px;
+            margin-bottom: 30px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .title {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #14b8a6;
+        }
+
+        .message {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            color: rgba(255,255,255,0.8);
+            line-height: 1.6;
+        }
+
+        .status {
+            font-size: 1.1em;
+            padding: 15px 30px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        .status.checking {
+            background: rgba(255, 165, 0, 0.2);
+            border: 2px solid #ffa500;
+            color: #ffa500;
+        }
+
+        .status.unlocked {
+            background: rgba(20, 184, 166, 0.2);
+            border: 2px solid #14b8a6;
+            color: #14b8a6;
+        }
+
+        .status.locked {
+            background: rgba(255, 68, 68, 0.2);
+            border: 2px solid #ff4444;
+            color: #ff4444;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #14b8a6;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .site-container {
+            display: none;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .site-box {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 60px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .site-title {
+            font-size: 4em;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .instructions {
+            font-size: 0.9em;
+            color: rgba(255,255,255,0.6);
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Overlay di sblocco -->
+    <div id="unlockOverlay" class="unlock-container">
+        <div class="lock-icon">🔐</div>
+        <div class="title">DMS Security System</div>
+        <div class="message">
+            Verifica in corso dell'autorizzazione di accesso...<br>
+            <small>Il sistema sta controllando se hai risposto all'email di autorizzazione</small>
+        </div>
+        <div id="statusMessage" class="status checking">
+            <div class="loading"></div>
+            Verificando autorizzazione...
+        </div>
+        <div class="instructions">
+            Se non hai ricevuto l'email, contatta l'amministratore del sistema
+        </div>
+    </div>
+
+    <!-- Pagina sito sbloccata -->
+    <div id="siteContainer" class="site-container">
+        <div class="site-box">
+            <div class="site-title">SITO</div>
+            <div style="margin-top: 20px; color: rgba(255,255,255,0.8);">
+                Accesso autorizzato - Benvenuto nel sistema DMS
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configurazione
+        const CONFIG = {
+            checkInterval: 3000, // Controlla ogni 3 secondi
+            maxAttempts: 100,    // Massimo 5 minuti di tentativi
+            apiEndpoint: 'https://chcndr.github.io/dms-sicurezza-mail-test/api'
+        };
+
+        let attempts = 0;
+        let checkTimer = null;
+
+        // Elementi DOM
+        const unlockOverlay = document.getElementById('unlockOverlay');
+        const siteContainer = document.getElementById('siteContainer');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // Estrai token dall'URL
+        function getTokenFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('t');
+        }
+
+        // Verifica autorizzazione
+        async function checkAuthorization() {
+            const token = getTokenFromUrl();
+            
+            if (!token) {
+                showError('Token di accesso non trovato nell\'URL');
+                return false;
+            }
+
+            try {
+                // Decodifica token per ottenere email
+                const tokenData = JSON.parse(atob(token.split('.')[1]));
+                const email = tokenData.sub || tokenData.email;
+                
+                if (!email) {
+                    showError('Token non valido - email mancante');
+                    return false;
+                }
+
+                // Controlla se l'utente ha risposto all'email
+                const sessionKey = `dms_session_${email.replace('@', '_').replace('.', '_')}`;
+                const sessionData = localStorage.getItem(sessionKey);
+                
+                if (sessionData) {
+                    const session = JSON.parse(sessionData);
+                    
+                    // Verifica se la sessione è attiva (utente ha risposto)
+                    if (session.replied && session.realEmail) {
+                        // Verifica se non è scaduta
+                        const now = Date.now();
+                        const expires = new Date(session.expires).getTime();
+                        
+                        if (now < expires) {
+                            return true; // Accesso autorizzato
+                        } else {
+                            showError('Sessione scaduta - richiedi nuovo accesso');
+                            return false;
+                        }
+                    }
+                }
+
+                // Simula controllo backend (in futuro sarà una chiamata API reale)
+                attempts++;
+                
+                if (attempts >= CONFIG.maxAttempts) {
+                    showError('Timeout verifica - l\'utente non ha ancora risposto all\'email');
+                    return false;
+                }
+
+                return null; // Continua a controllare
+                
+            } catch (error) {
+                console.error('Errore verifica autorizzazione:', error);
+                showError('Errore durante la verifica dell\'autorizzazione');
+                return false;
+            }
+        }
+
+        // Mostra errore
+        function showError(message) {
+            statusMessage.className = 'status locked';
+            statusMessage.innerHTML = `❌ ${message}`;
+            
+            if (checkTimer) {
+                clearInterval(checkTimer);
+            }
+        }
+
+        // Sblocca sito
+        function unlockSite() {
+            statusMessage.className = 'status unlocked';
+            statusMessage.innerHTML = '✅ Accesso autorizzato - Reindirizzamento...';
+            
+            setTimeout(() => {
+                unlockOverlay.style.display = 'none';
+                siteContainer.style.display = 'flex';
+            }, 1500);
+            
+            if (checkTimer) {
+                clearInterval(checkTimer);
+            }
+        }
+
+        // Avvia verifica
+        async function startVerification() {
+            console.log('🔐 Avvio verifica autorizzazione DMS...');
+            
+            const result = await checkAuthorization();
+            
+            if (result === true) {
+                unlockSite();
+                return;
+            } else if (result === false) {
+                return; // Errore già mostrato
+            }
+            
+            // Continua a controllare
+            checkTimer = setInterval(async () => {
+                const result = await checkAuthorization();
+                
+                if (result === true) {
+                    unlockSite();
+                } else if (result === false) {
+                    // Errore - stop
+                    return;
+                }
+                
+                // Aggiorna messaggio
+                statusMessage.innerHTML = `
+                    <div class="loading"></div>
+                    Verificando autorizzazione... (tentativo ${attempts}/${CONFIG.maxAttempts})
+                `;
+            }, CONFIG.checkInterval);
+        }
+
+        // Inizializzazione
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 DMS Unlock System inizializzato');
+            startVerification();
+        });
+    </script>
+</body>
+</html>

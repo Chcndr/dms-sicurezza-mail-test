@@ -510,7 +510,8 @@
             sessionsContainer: document.getElementById('sessionsContainer'),
             githubToken: document.getElementById('githubToken'),
             salvaTokenBtn: document.getElementById('salvaTokenBtn'),
-            tokenStatus: document.getElementById('tokenStatus')
+            tokenStatus: document.getElementById('tokenStatus'),
+            logoutBtn: document.getElementById('logoutBtn')
         };
 
         // Inizializzazione sistema
@@ -703,6 +704,17 @@ Il workflow invierà l'email utilizzando il server SMTP configurato (info@dms.as
                 const issueData = await response.json();
                 console.log('✅ Issue GitHub creato automaticamente:', issueData.number);
 
+                // Salva il numero Issue nella sessione per identificarla come reale
+                const sessionKey = `dms_session_${email.replace('@', '_').replace('.', '_')}`;
+                const existingSession = localStorage.getItem(sessionKey);
+                if (existingSession) {
+                    const sessionData = JSON.parse(existingSession);
+                    sessionData.issueNumber = issueData.number;
+                    sessionData.issueUrl = issueData.html_url;
+                    sessionData.realEmail = true;
+                    localStorage.setItem(sessionKey, JSON.stringify(sessionData));
+                }
+
                 // Attendi un momento per l'attivazione del workflow
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 
@@ -777,7 +789,17 @@ Il workflow invierà l'email utilizzando il server SMTP configurato (info@dms.as
                 // Carica sessioni reali dal localStorage
                 await new Promise(resolve => setTimeout(resolve, 500));
 
-                // Carica tutte le sessioni salvate
+                // Pulisci sessioni di test vecchie
+                const testEmails = ['bebaviola@gmail.com', 'bebaviola@me.com'];
+                for (const testEmail of testEmails) {
+                    const testKey = `dms_session_${testEmail.replace('@', '_').replace('.', '_')}`;
+                    if (localStorage.getItem(testKey)) {
+                        localStorage.removeItem(testKey);
+                        console.log('🗑️ Rimossa sessione di test:', testEmail);
+                    }
+                }
+
+                // Carica solo sessioni reali (con email effettivamente inviate)
                 const sessioni = [];
                 
                 // Cerca tutte le sessioni nel localStorage
@@ -786,7 +808,8 @@ Il workflow invierà l'email utilizzando il server SMTP configurato (info@dms.as
                     if (key && key.startsWith('dms_session_')) {
                         try {
                             const sessionData = JSON.parse(localStorage.getItem(key));
-                            if (sessionData && sessionData.email) {
+                            // Filtra solo sessioni con email realmente inviate
+                            if (sessionData && sessionData.email && sessionData.realEmail && sessionData.issueNumber) {
                                 sessioni.push({
                                     email: sessionData.email,
                                     area: sessionData.area || 'admin',
@@ -794,11 +817,17 @@ Il workflow invierà l'email utilizzando il server SMTP configurato (info@dms.as
                                     created: sessionData.created || 'N/A',
                                     expires: sessionData.replied ? 
                                         `Scade: ${new Date(sessionData.expires).toLocaleString()}` : 
-                                        'Timer non ancora avviato'
+                                        'Timer non ancora avviato',
+                                    issueNumber: sessionData.issueNumber
                                 });
+                            } else if (sessionData && !sessionData.realEmail) {
+                                // Rimuovi sessioni fittizie
+                                localStorage.removeItem(key);
+                                console.log('🗑️ Rimossa sessione fittizia:', sessionData.email);
                             }
                         } catch (e) {
                             console.warn('Sessione corrotta ignorata:', key);
+                            localStorage.removeItem(key);
                         }
                     }
                 }
