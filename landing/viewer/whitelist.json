@@ -1,5 +1,14 @@
 {
   "version": "1.0",
-  "entries": [],
-  "last_updated": "2025-10-05T21:45:00.000000Z"
+  "entries": [
+    {
+      "sub": "test.unlock@example.com",
+      "jti": "unlock_test_1759706362",
+      "exp": 1759717162,
+      "scope": [
+        "admin"
+      ]
+    }
+  ],
+  "last_updated": "2025-10-05T23:19:22.000000Z"
 }
