@@ -1,0 +1,154 @@
+name: DMS – Auto Unlock on GitHub Comment
+on:
+  issue_comment:
+    types: [created]
+  issues:
+    types: [closed]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  unlock_on_comment:
+    if: contains(github.event.issue.labels.*.name, 'pending-reply') || contains(github.event.issue.labels.*.name, 'dispatch-email')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Parse Issue data
+        id: parse
+        env:
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+        run: |
+          python - <<'PY'
+          import os, json, re, sys, time
+          
+          ev = json.load(open(os.environ['GITHUB_EVENT_PATH']))
+          issue = ev.get('issue', {})
+          comment = ev.get('comment', {})
+          
+          # Estrai dati dall'Issue body
+          body = issue.get('body') or ''
+          m = re.search(r'<!--DMS:START-->\s*```json\s*(\{.*?\})\s*```\s*<!--DMS:END-->', body, re.S)
+          if not m:
+            print('::error ::Blocco JSON non trovato nell\'Issue'); sys.exit(1)
+          
+          try:
+            data = json.loads(m.group(1))
+          except Exception as e:
+            print(f'::error ::JSON non valido: {e}'); sys.exit(1)
+          
+          # Verifica che sia una risposta valida
+          if comment:
+            comment_author = comment.get('user', {}).get('login', '')
+            comment_body = comment.get('body', '')
+            print(f"Commento da: {comment_author}")
+            print(f"Contenuto: {comment_body}")
+          
+          # Estrai informazioni per la whitelist
+          email = data.get('to', '')
+          jti = data.get('jti', '')
+          exp = int(data.get('exp', int(time.time()) + 3600))
+          area = data.get('area', 'admin')
+          
+          # Output per step successivi
+          out = os.environ['GITHUB_OUTPUT']
+          with open(out, 'a') as f:
+            f.write(f"email={email}\n")
+            f.write(f"jti={jti}\n")
+            f.write(f"exp={exp}\n")
+            f.write(f"area={area}\n")
+            f.write(f"issue_number={issue.get('number', '')}\n")
+          
+          print(f"✅ Risposta rilevata per {email} (JTI: {jti})")
+          PY
+
+      - name: Update whitelist
+        run: |
+          python - <<'PY'
+          import json, time, pathlib
+          
+          # Parametri dal step precedente
+          email = "${{ steps.parse.outputs.email }}"
+          jti = "${{ steps.parse.outputs.jti }}"
+          exp = int("${{ steps.parse.outputs.exp }}")
+          area = "${{ steps.parse.outputs.area }}"
+          
+          # Carica whitelist esistente
+          wl_path = pathlib.Path("landing/viewer/whitelist.json")
+          if wl_path.exists():
+            try:
+              wl = json.loads(wl_path.read_text())
+            except:
+              wl = {"version": "1.0", "entries": [], "last_updated": ""}
+          else:
+            wl = {"version": "1.0", "entries": [], "last_updated": ""}
+          
+          # Aggiungi/aggiorna entry
+          found = False
+          for entry in wl["entries"]:
+            if entry.get("jti") == jti or entry.get("sub") == email:
+              entry.update({
+                "sub": email,
+                "jti": jti, 
+                "exp": exp,
+                "scope": [area]
+              })
+              found = True
+              break
+          
+          if not found:
+            wl["entries"].append({
+              "sub": email,
+              "jti": jti,
+              "exp": exp, 
+              "scope": [area]
+            })
+          
+          # Aggiorna timestamp
+          wl["last_updated"] = time.strftime("%Y-%m-%dT%H:%M:%S.000000Z", time.gmtime())
+          
+          # Salva whitelist
+          wl_path.parent.mkdir(parents=True, exist_ok=True)
+          wl_path.write_text(json.dumps(wl, ensure_ascii=False, indent=2))
+          
+          print(f"✅ Whitelist aggiornata per {email}")
+          PY
+
+      - name: Update Issue labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          issue_number="${{ steps.parse.outputs.issue_number }}"
+          
+          # Rimuovi label pending-reply
+          curl -sS -X DELETE \
+            -H "Authorization: token ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${issue_number}/labels/pending-reply" || true
+          
+          # Aggiungi label granted
+          curl -sS -X POST \
+            -H "Authorization: token ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -d '{"labels":["granted"]}' \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${issue_number}/labels"
+          
+          # Aggiungi commento di conferma
+          curl -sS -X POST \
+            -H "Authorization: token ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -d '{"body":"✅ **Auto-unlock attivato!** Risposta rilevata tramite commento GitHub. Accesso sbloccato per ${{ steps.parse.outputs.email }}."}' \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${issue_number}/comments"
+
+      - name: Commit and push whitelist
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add landing/viewer/whitelist.json
+          git commit -m "Auto-unlock: Aggiornata whitelist per ${{ steps.parse.outputs.email }}" || exit 0
+          git push
