@@ -224,15 +224,18 @@
                 const session = JSON.parse(sessionData);
                 
                 if (reply === 'confirm') {
-                    // Attiva la sessione
+                    // Attiva la sessione - formato compatibile con unlock.html
                     session.replied = true;
                     session.replyTimestamp = new Date().toISOString();
                     session.status = 'active';
                     
-                    // Calcola scadenza dalla risposta
+                    // Calcola scadenza dalla risposta (importante per unlock.html)
                     const now = Date.now();
                     const durationMs = (session.duration || 60) * 60 * 1000;
                     session.expires = new Date(now + durationMs).toISOString();
+                    
+                    // Assicurati che realEmail sia true
+                    session.realEmail = true;
                     
                     localStorage.setItem(sessionKey, JSON.stringify(session));
                     

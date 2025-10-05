@@ -603,20 +603,24 @@
 
                 console.log('🔑 Token generato:', token);
 
-                // Salva sessione nel localStorage
+                // Salva sessione nel localStorage nel formato corretto per unlock.html
                 const sessionKey = `dms_session_${email.replace('@', '_').replace('.', '_')}`;
                 const sessionData = {
                     email: email,
                     area: area,
                     token: token,
-                    duration: durata,
-                    created: new Date().toLocaleString(),
-                    expires: new Date(Date.now() + durata * 60000).toISOString(),
-                    replied: false,
+                    duration: parseInt(durata),
+                    created: new Date().toISOString(),
+                    replied: false, // Diventa true quando l'utente risponde all'email
+                    replyTimestamp: null,
+                    status: 'pending', // pending -> active quando risponde
+                    expires: null, // Viene calcolato quando risponde (dalla risposta + durata)
+                    realEmail: false, // Diventa true quando l'Issue viene creato
+                    issueNumber: null,
                     timestamp: Date.now()
                 };
                 localStorage.setItem(sessionKey, JSON.stringify(sessionData));
-                console.log('💾 Sessione salvata:', sessionKey);
+                console.log('💾 Sessione salvata nel formato unlock.html:', sessionKey);
 
                 // Simula invio email tramite GitHub Actions
                 await simulateEmailSend(email, token, area, durata);
@@ -705,15 +709,17 @@ Il workflow invierà l'email utilizzando il server SMTP configurato (info@dms.as
                 const issueData = await response.json();
                 console.log('✅ Issue GitHub creato automaticamente:', issueData.number);
 
-                // Salva il numero Issue nella sessione per identificarla come reale
+                // Aggiorna la sessione con i dati dell'Issue GitHub
                 const sessionKey = `dms_session_${email.replace('@', '_').replace('.', '_')}`;
                 const existingSession = localStorage.getItem(sessionKey);
                 if (existingSession) {
                     const sessionData = JSON.parse(existingSession);
                     sessionData.issueNumber = issueData.number;
                     sessionData.issueUrl = issueData.html_url;
-                    sessionData.realEmail = true;
+                    sessionData.realEmail = true; // Ora è una email reale con Issue GitHub
+                    sessionData.status = 'email_sent'; // Email inviata, in attesa di risposta
                     localStorage.setItem(sessionKey, JSON.stringify(sessionData));
+                    console.log('✅ Sessione aggiornata con Issue #' + issueData.number);
                 }
 
                 // Attendi un momento per l'attivazione del workflow
