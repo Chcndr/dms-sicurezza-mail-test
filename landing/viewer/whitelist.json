@@ -1,5 +1,14 @@
 {
   "version": "1.0",
-  "entries": [],
-  "last_updated": "2025-10-05T21:45:00.000000Z"
+  "entries": [
+    {
+      "sub": "checchi@me.com",
+      "jti": "",
+      "exp": 1759708724,
+      "scope": [
+        "admin"
+      ]
+    }
+  ],
+  "last_updated": "2025-10-05T22:58:44.000000Z"
 }
