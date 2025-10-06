@@ -12,11 +12,11 @@
     {
       "sub": "checchi@me.com",
       "jti": "",
-      "exp": 1759715819,
+      "exp": 1759724100,
       "scope": [
         "admin"
       ]
     }
   ],
-  "last_updated": "2025-10-06T00:56:59.000000Z"
+  "last_updated": "2025-10-06T03:15:01.000000Z"
 }
