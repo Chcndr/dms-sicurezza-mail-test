@@ -8,7 +8,15 @@
       "scope": [
         "admin"
       ]
+    },
+    {
+      "sub": "checchi@me.com",
+      "jti": "",
+      "exp": 1759715819,
+      "scope": [
+        "admin"
+      ]
     }
   ],
-  "last_updated": "2025-10-05T23:19:22.000000Z"
+  "last_updated": "2025-10-06T00:56:59.000000Z"
 }
